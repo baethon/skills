@@ -28,6 +28,14 @@ Re-read the entire PRD looking for claims that conflict. Targets:
 
 Cite the exact line numbers or section headings on both sides. If a referenced artifact disagrees, name the artifact and the line.
 
+**Severity gate.** Only flag a contradiction if the two sides would plausibly ship as **different code or different persisted state** — i.e. an implementer reading one side vs the other would build the feature differently, or the same code would behave differently at runtime. Skip:
+
+- Copy-edit issues: typos, self-defeating sentences, ambiguous wording that has one obvious intended reading.
+- Style nits: hardcoded strings where a named helper exists, prose that treats two cases as "identical" when the asymmetry is already captured by another finding, naming-convention deviations.
+- Tone/structure: section ordering, missing headings, repetition.
+
+These belong in normal code review, not a pre-implementation audit. If in doubt, ask: "would two competent implementers actually diverge here?" If no, drop it.
+
 ### Pass 2 — Missing invariants
 
 List cross-cutting rules the PRD relies on but never names. These usually live at module seams. Targets:
@@ -38,11 +46,11 @@ List cross-cutting rules the PRD relies on but never names. These usually live a
 - **Monotonicity** — things that only grow / never shrink / never reorder.
 - **Single source of truth** — which side owns which field on conflict.
 
-Propose **5–8** explicit invariants in the form "<rule>. Reason: <why violating it would corrupt data>." Reviewers must be able to check each one directly against a diff later.
+Propose **3–5** explicit invariants in the form "<rule>. Reason: <why violating it would corrupt data>." Aim for the minimum set that prevents seam bugs, not comprehensive coverage. If the PRD is small (one resource, one endpoint), the lower end is fine. Reviewers must be able to check each one directly against a diff later.
 
 ### Pass 3 — End-to-end walkthroughs
 
-List **4–8** concrete scenarios that cross module boundaries. Targets:
+List **2–4** concrete scenarios that cross module boundaries. Pick the ones most likely to surface a real seam bug — do not pad to hit a count. Targets:
 
 - **Crash / reopen** — user does X offline, app crashes, reopens, syncs.
 - **Race** — action A is mid-flight when action B starts.
