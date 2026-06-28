@@ -19,7 +19,7 @@ Formatter output wins over manual formatting preferences. Follow existing local 
 - Prefer the simplest readable solution that satisfies the task. Avoid clever or fancy approaches unless they are required to meet the goal.
 - Prefer functions and callbacks without side effects. Return new values instead of mutating captured variables, input objects, or shared state.
 - Allow mutation when avoiding it would make the solution unnecessarily complicated, when an API requires it, or when the existing local pattern clearly uses it.
-- Never use one-line `if` statements. Always use braces, put the body on the next line, and put the closing brace on its own line.
+- Never use one-line `if` statements or loops. Always use braces, put the body on the next line, and put the closing brace on its own line.
 - Prefer native list transformation methods over manual loops when filtering, mapping, reducing, or chaining multiple list operations.
 
 ## Naming
@@ -66,6 +66,22 @@ Do not use one-line conditions, even for short branches.
 
 ```javascript
 if (isValid) return value;
+```
+
+## Loops
+
+Always write `for`, `foreach`, `while`, and similar loops with braces and a multi-line body.
+
+```javascript
+for (const customer of customers) {
+    sendEmail(customer);
+}
+```
+
+Do not use one-line loops, even when the loop body is short.
+
+```javascript
+for (const customer of customers) sendEmail(customer);
 ```
 
 ## Side Effects
