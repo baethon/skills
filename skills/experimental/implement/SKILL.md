@@ -36,15 +36,25 @@ Prefer vertical, verifiable slices. Use horizontal layer-only slices only when t
 
 Completion criterion: before editing, you have either one atomic slice or a short ordered list of slices, each with its own verification target.
 
-### 3. Implement One Slice At A Time
+### 3. Delegate One Slice At A Time
 
-For each slice:
+For each slice, launch a fresh implementation subagent. Give the subagent:
+
+- the slice goal
+- the relevant acceptance criteria and constraints
+- the files, patterns, or seams already discovered
+- the focused verification target
+- the requirement to commit only files that belong to the slice
+
+The subagent owns the slice:
 
 1. Use `/tdd` where possible, at pre-agreed seams.
 2. Make the smallest change that completes the slice.
 3. Run the focused test, typecheck, or verification command for the slice.
 4. Review the diff for that slice.
-5. Commit only the files that belong to that slice before starting the next slice.
+5. Commit only the files that belong to that slice.
+
+After the subagent returns, inspect its result before launching the next slice. If the subagent reports a blocker, verification failure, or uncommitted work, stop and report the blocker.
 
 Completion criterion: every planned slice is implemented, verified, and committed, or you have stopped and reported the blocker.
 
