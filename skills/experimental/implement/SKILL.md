@@ -6,8 +6,6 @@ disable-model-invocation: true
 
 # Implement
 
-Implement the work described by the user in the spec or tickets.
-
 ## Process
 
 ### 1. Understand The Work
@@ -38,7 +36,7 @@ Completion criterion: before editing, you have either one atomic slice or a shor
 
 ### 3. Delegate One Slice At A Time
 
-For each slice, launch a fresh implementation subagent. Give the subagent:
+For each planned slice, launch a fresh implementation subagent. Give the subagent:
 
 - the slice goal
 - the relevant acceptance criteria and constraints
@@ -48,21 +46,22 @@ For each slice, launch a fresh implementation subagent. Give the subagent:
 
 The subagent owns the slice:
 
-1. Use `/tdd` where possible, at pre-agreed seams.
+1. Use `/tdd` when the seam identified in step 1 fits test-first work; otherwise state why it does not fit.
 2. Make the smallest change that completes the slice.
 3. Run the focused test, typecheck, or verification command for the slice.
 4. Review the diff for that slice.
 5. Commit only the files that belong to that slice.
+6. Return the commit hash, verification result, and any remaining risks or blockers.
 
-After the subagent returns, inspect its result before launching the next slice. If the subagent reports a blocker, verification failure, or uncommitted work, stop and report the blocker.
+After the subagent returns, inspect the reported commit and check `git status --short` before launching the next slice. If the subagent reports a blocker, verification failure, or unexpected uncommitted work, stop and report the blocker.
 
-Completion criterion: every planned slice is implemented, verified, and committed, or you have stopped and reported the blocker.
+Completion criterion: every planned slice has a reported commit and focused verification result, or you have stopped and reported the blocker.
 
 ### 4. Final Verification
 
-Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+After all slice commits, run the broadest practical project verification once. Prefer the full test suite plus typecheck when available.
 
-Completion criterion: final verification has passed, or failures are reported with the relevant output.
+Completion criterion: final verification has passed, or failures and unavailable checks are reported with the relevant output.
 
 ### 5. Review The Work
 
