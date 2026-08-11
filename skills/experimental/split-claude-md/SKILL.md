@@ -1,6 +1,7 @@
 ---
 name: split-claude-md
-description: Split a bloated project CLAUDE.md into tiered context — always-loaded rules stay, path-scoped rules become .claude/rules/*.md with paths: frontmatter, occasional reference moves to docs/agents/*.md. Proposes the full breakdown for approval before it writes anything. Use when the user invokes /split-claude-md.
+description: >
+  Split a bloated project CLAUDE.md into tiered context — always-loaded rules stay, path-scoped rules become .claude/rules/*.md with paths: frontmatter, occasional reference moves to docs/agents/*.md. Proposes the full breakdown for approval before it writes anything. Use when the user invokes /split-claude-md.
 disable-model-invocation: true
 ---
 
