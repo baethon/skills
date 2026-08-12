@@ -119,6 +119,8 @@ Writing rules:
 
 - Delete every moved chunk from `CLAUDE.md`. Only rung-1 chunks and the
   pointers stay. A chunk that lives in two files costs tokens in both.
+- When `CLAUDE.md` changes, rewrite the resulting file in the same style as the
+  generated files.
 - Append to an existing file. Never replace it.
 - Start each `docs/agents/*.md` with one line that states what the file covers
   and when to read it.
@@ -139,14 +141,15 @@ If `AGENTS.md` exists, close with a warning that this run did not update it.
 
 ## Style
 
-Write every generated file in Simplified Technical English:
+Write every generated file in plain, dead prose:
 
-- One idea per sentence.
-- Active voice, present tense.
-- Imperative mood for instructions.
-- One term per concept. Do not switch between synonyms.
+- Say the instruction directly.
+- Use simple sentences.
+- Use active voice and imperative mood for instructions.
+- Use one term per concept.
+- Do not use aphorisms, slogans, metaphors, jokes, or flourishes.
+- Use `CONTEXT.md` as the project grammar. Copy its domain terms exactly and
+  follow its naming patterns.
+- A project term wins over a simpler generic word.
 
 Rewriting for compactness is expected — the new files are not copies.
-
-Use the terms from `CONTEXT.md` exactly as that file defines them. A domain
-term wins over any simpler word.
