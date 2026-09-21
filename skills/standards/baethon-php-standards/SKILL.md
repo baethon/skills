@@ -1,32 +1,38 @@
 ---
 name: baethon-php-standards
-description: PHP and Laravel coding reference for readability, style, tests, Eloquent, queues, commands, validation, and API conventions. Use when writing, modifying, planning, or reviewing PHP code, including Laravel application code.
+description: PHP and Laravel reference for syntax, naming, Eloquent, queues, commands, validation, and test conventions. Use when writing, modifying, planning, or reviewing PHP code. It governs PHP and Laravel conventions only.
 ---
 
-# PHP Standards
+# PHP standards
 
-## How To Apply
+## Scope
 
-Apply these standards when writing, modifying, planning, or reviewing PHP code.
+This skill owns PHP and Laravel conventions. It does not decide feature scope, architecture, or whether the current behavior needs a new abstraction.
+
+When `minimal-senior-code` also applies, that skill owns those implementation decisions. Do not add a class, layer, or dependency only to match an example in these references.
+
+During review-only tasks, evaluate only the conventions this skill owns.
 
 Use [PHP_REFERENCE.md](PHP_REFERENCE.md) for general PHP conventions.
 
 Use [LARAVEL_REFERENCE.md](LARAVEL_REFERENCE.md) when the project uses Laravel or the touched code is Laravel-specific.
 
-Apply these standards to code you create or materially modify. Do not refactor unrelated code only to satisfy these standards.
+Apply these rules in this order:
 
-Formatter output wins over manual formatting preferences. Follow existing local patterns unless intentionally refactoring.
+1. Formatter output.
+2. Established local conventions.
+3. This reference.
 
-## Core Checklist
+Apply them only to code you create or materially modify.
 
-- Prefer readable, explicit code over cleverness.
+## Core checklist
+
 - Use explicit type hints in typed PHP code.
 - Use `SCREAMING_SNAKE_CASE` for PHP enum cases.
 - Use named arguments for boolean literals.
-- Redesign awkward positional boolean APIs with explicit methods, enums, or options.
 - For Laravel code, also apply the Laravel reference.
 
-## Reference Files
+## Reference files
 
 - [PHP_REFERENCE.md](PHP_REFERENCE.md): PHP-specific rules and examples.
 - [LARAVEL_REFERENCE.md](LARAVEL_REFERENCE.md): Laravel-specific rules and examples.

@@ -1,8 +1,8 @@
-# PHP Reference
+# PHP reference
 
 ## Rules
 
-### 1. Enum Cases in SCREAMING_SNAKE_CASE
+### 1. Enum cases in SCREAMING_SNAKE_CASE
 
 PHP Enum cases must use uppercase snake_case:
 
@@ -17,7 +17,7 @@ SyncJobStatus::PendingActivation
 SyncJobStatus::Pending_Activation
 ```
 
-### 2. Use Named Arguments for Boolean Values
+### 2. Use named arguments for boolean values
 
 When passing a boolean literal (`true` or `false`) to a function or method, use
 named arguments so the intent is explicit.
@@ -43,9 +43,11 @@ foo($title, showBar: true, maxItems: 10);
 foo($title, true, 10);
 ```
 
-If naming the remaining arguments feels too verbose, redesign the API instead of
-using positional booleans:
+When current requirements need more than a binary choice, model that domain
+concept with the PHP construct that fits the surrounding code:
 
-- Move boolean parameters to the end and give them sensible defaults.
 - Replace boolean flags with explicit methods.
-- Use enums or dedicated option objects/arrays for multi-mode behavior.
+- Use an enum for a closed set of modes.
+- Use an existing project options pattern when several independent choices travel together.
+
+Do not redesign an API merely because it accepts a boolean.
