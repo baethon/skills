@@ -9,6 +9,7 @@ allowed-tools:
   - Skill
   - 'Bash(gh pr comment *)'
   - 'Bash(gh issue view *)'
+disable-model-invocation: true
 ---
 
 # PR reviewer brief

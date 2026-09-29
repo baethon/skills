@@ -12,6 +12,7 @@ allowed-tools:
   - 'Bash(gh pr edit *)'
   - 'Bash(ripwire *)'
   - 'Bash(jq *)'
+disable-model-invocation: true
 ---
 
 # PR labels

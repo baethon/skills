@@ -10,6 +10,7 @@ allowed-tools:
   - 'Bash(ripwire *)'
   - 'Bash(jq *)'
   - 'Bash(gh api graphql *)'
+disable-model-invocation: true
 ---
 
 # PR review
