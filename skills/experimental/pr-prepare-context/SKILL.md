@@ -15,12 +15,14 @@ downstream skill.
 ### 1. Run the script
 
 ```
-scripts/prepare.sh <pull-request-url>
+scripts/prepare.sh <pull-request-url> [base-dir]
 ```
 
-It clones to `/tmp/{owner}-{repo}-pr-{number}/`, checks out the PR head detached, and
-writes the artifacts below. Re-running is safe and cheap: it fetches, resets `src/` to
-the current head — discarding anything written there — and rewrites `context/`.
+It clones to `{base-dir}/{owner}-{repo}-pr-{number}/`, checks out the PR head detached,
+and writes the artifacts below. `base-dir` defaults to `/tmp`; pass it when the user asks
+for the checkout somewhere else (e.g. "save in current folder" → pass `$PWD`).
+Re-running is safe and cheap: it fetches, resets `src/` to the current head — discarding
+anything written there — and rewrites `context/`.
 
 The script exits non-zero with the fix on its own preflight failures (`gh` not
 authenticated, URL not a PR, repository unreachable). Pass that message to the user
@@ -37,7 +39,7 @@ checkout is intact; the user fixes the install in place and you continue from th
 
 ### 3. Hand off
 
-Report `/tmp/{owner}-{repo}-pr-{number}` and let the downstream skill read what it
+Report `{base-dir}/{owner}-{repo}-pr-{number}` and let the downstream skill read what it
 needs from it.
 
 ## Artifacts

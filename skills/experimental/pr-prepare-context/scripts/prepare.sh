@@ -38,7 +38,7 @@ parse_pull_request_url() {
 }
 
 setup_context_paths() {
-  ROOT="/tmp/$OWNER-$REPO-pr-$PR_NUMBER"
+  ROOT="$BASE_DIR/$OWNER-$REPO-pr-$PR_NUMBER"
   SRC_DIR="$ROOT/src"
   CONTEXT_DIR="$ROOT/context"
 
@@ -113,9 +113,10 @@ print_summary() {
 
 main() {
   local pull_request_url="${1:-}"
+  BASE_DIR="${2:-/tmp}"
 
   if [ -z "$pull_request_url" ]; then
-    fail "Usage: prepare.sh <pull-request-url>"
+    fail "Usage: prepare.sh <pull-request-url> [base-dir]"
   fi
 
   require_command git
