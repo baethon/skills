@@ -101,26 +101,48 @@ Two rules hold the tiers apart:
   assertion wearing a question mark, and it is the fastest way to spend the reviewer's
   trust.
 
+- **Deployment config is not a fact.** `.env`, `.env.example`, `config/*` defaults, and
+  local docker settings describe this checkout, not the environments the code runs in. A
+  finding that only holds under one value of such a setting — queue driver, cache store,
+  mail transport, debug flag, feature toggle — is a `🤔` naming the setting, never a `🔴`
+  or `🔵` asserting the value. Config committed as the deployed value, such as a hardcoded
+  array in `config/` with no `env()` fallback, is a fact and grades normally.
+
 Findings on the same line merge within a tier. Across tiers they stay separate — the tier
 is the signal, and one prefix cannot carry two kinds of claim.
 
 ## 5. Write the comments
 
-Every body opens with `🤖` and its tier emoji. Two lines:
+Every body opens with `🤖` and its tier emoji, and has two parts separated by a **blank
+line**:
 
-1. The fact, or — for `🤔` — the question.
-2. Where it reaches from, or the fact that could not be settled. Dropped when the finding
-   is local and speaks for itself.
+1. The claim, or — for `🤔` — the question. One sentence.
+2. The explanation: the path that produces the bad outcome, and where it reaches from.
+   Two to four sentences, enough that the reviewer can check the claim without opening
+   three files to work out what was meant. Brevity is not the goal here; being decipherable
+   on one read is. Dropped only when the first line is genuinely self-contained.
 
 ```
-🤖 🔴 `up()` renames `orders.status` to `state`; `down()` drops `state` instead of renaming it back — a rollback leaves orders with no status column.
-Reached by OrderExport::rows(), 14 dependents.
+🤖 🔴 `down()` drops `orders.state` instead of renaming it back to `status`.
 
-🤖 🔵 `$items` is lazy-loaded inside the foreach — one query per row.
-InvoiceController::show() renders this with up to 200 rows.
+`up()` renames `orders.status` to `state`, so the rollback path is not the inverse: it
+deletes the column and every value in it. A rollback on production leaves orders with no
+status at all, and the data is not recoverable from the schema. `OrderExport::rows()` and
+13 other dependents read that column.
 
-🤖 🤔 What bounds `qty` before it reaches the `* $price` multiply?
-No rule for it in StoreOrderRequest.
+🤖 🔵 `$order->items` is lazy-loaded inside the `foreach`, so the loop runs one query per
+row.
+
+The collection comes from `Order::paginate()` with no `with('items')`, so nothing has
+eager-loaded the relation before the loop. `InvoiceController::show()` renders this page
+with up to 200 rows per request, which is 200 extra queries on the page's hot path.
+
+🤖 🤔 What bounds `qty` before it reaches the `* $price` multiply on line 48?
+
+`StoreOrderRequest` has no rule for `qty`, and the value arrives straight from the request
+payload. If a large or negative quantity can reach here, the total is wrong and the order
+is priced from it. I could not settle whether something upstream of this controller
+already constrains it.
 ```
 
 Write plainly and state the finding outright: *"a rollback leaves orders with no status
