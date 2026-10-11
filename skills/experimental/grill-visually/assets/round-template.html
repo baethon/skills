@@ -32,12 +32,23 @@ p { margin: 0 0 10px; }
 .context { max-width: 72ch; margin: 8px 0 0; }
 .changes { margin: 18px 0 0; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 6px; color: var(--muted); }
 .changes a { color: var(--ink); }
-.layout { display: grid; gap: 32px; margin-top: 28px; }
-@media (min-width: 1100px) {
-  .layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; }
-  .views { position: sticky; top: 16px; max-height: calc(100vh - 140px); overflow: auto; }
+.view { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; margin: 36px 0 16px; }
+.view-head { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; }
+.view-head button, .zoom-bar button { font: inherit; font-size: .88rem; border-radius: 5px; padding: 4px 12px; cursor: pointer; }
+.open-heading { margin-top: 28px; }
+.card, .rest { max-width: 860px; }
+@media (min-height: 700px) {
+  .group > .view { position: sticky; top: 0; z-index: 1; max-height: 45vh; display: flex; flex-direction: column; }
+  .group > .view .diagram { flex: 1; min-height: 0; overflow: auto; }
+  .group > .card { scroll-margin-top: 47vh; }
 }
-.view { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; margin-bottom: 16px; }
+.rest { margin-top: 36px; }
+dialog.zoom { width: 96vw; height: 92vh; max-width: none; max-height: none; padding: 0; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); border-radius: 6px; }
+dialog.zoom::backdrop { background: rgb(0 0 0 / .6); }
+.zoom-bar { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+.zoom-bar h2 { margin: 0; }
+.zoom-body { height: calc(100% - 58px); overflow: auto; padding: 16px; }
+.zoom-body svg { display: block; margin: 0 auto; max-width: none; }
 .view .legend { color: var(--muted); font-size: .9rem; margin: 2px 0 10px; }
 .view .diagram { overflow-x: auto; }
 .view pre.mermaid { margin: 0; background: transparent; }
@@ -144,22 +155,6 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
     if (parts.length) app.append(el('p', { class: 'changes' }, 'Since last round: ', parts.flatMap((p, i) => (i ? ['. ', ...p] : p)), '.'));
   }
 
-  const layout = el('div', { class: 'layout' });
-  const viewsCol = el('section', { class: 'views', 'aria-label': 'Diagrams' });
-  const qCol = el('section', { 'aria-label': 'Questions' });
-  layout.append(viewsCol, qCol);
-  app.append(layout);
-
-  // ---- views ----
-  if (!data.views.length) viewsCol.append(el('p', { class: 'notice', text: 'No diagrams yet.' }));
-  for (const v of data.views) {
-    viewsCol.append(el('div', { class: 'view', id: 'v-' + v.id },
-      el('h2', { text: v.title }),
-      v.legend ? el('p', { class: 'legend', text: v.legend }) : null,
-      el('div', { class: 'diagram' }, el('pre', { class: 'mermaid', text: v.source })),
-    ));
-  }
-
   // ---- open questions ----
   const KIND = { new: 'New term', synonym: 'Two words for one thing', conflict: 'Used differently than the glossary says' };
   function optionLabel(q, o) {
@@ -221,10 +216,42 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
       fieldset,
     );
   }
-  if (open.length) {
-    qCol.append(el('h2', { text: 'Open questions' }));
-    open.forEach((q) => qCol.append(questionCard(q)));
+  // ---- questions, each pinned one under its view ----
+  const zoom = el('dialog', { class: 'zoom', 'aria-label': 'Zoomed diagram', onclick: (e) => { if (e.target === zoom) zoom.close(); } });
+  document.body.append(zoom);
+  function openZoom(v) {
+    const svg = document.querySelector('#v-' + v.id + ' .diagram svg');
+    const size = svg.getBoundingClientRect();
+    const copy = svg.cloneNode(true);
+    const body = el('div', { class: 'zoom-body' }, copy);
+    zoom.replaceChildren(
+      el('div', { class: 'zoom-bar' }, el('h2', { text: v.title }), el('button', { type: 'button', class: 'secondary', text: 'Close', onclick: () => zoom.close() })),
+      body);
+    zoom.showModal();
+    const scale = Math.max(1, Math.min((body.clientWidth - 32) / size.width, (body.clientHeight - 32) / size.height));
+    copy.style.width = size.width * scale + 'px';
+    copy.style.height = size.height * scale + 'px';
   }
+  function viewCard(v) {
+    const zoomBtn = el('button', { type: 'button', class: 'secondary zoom-btn', hidden: true, text: 'Zoom', onclick: () => openZoom(v) });
+    return el('section', { class: 'view', id: 'v-' + v.id },
+      el('div', { class: 'view-head' }, el('h2', { text: v.title }), zoomBtn),
+      v.legend ? el('p', { class: 'legend', text: v.legend }) : null,
+      el('div', { class: 'diagram' }, el('pre', { class: 'mermaid', text: v.source })),
+    );
+  }
+  const viewIds = new Set(data.views.map((v) => v.id));
+  const unpinned = open.filter((q) => !viewIds.has(q.view));
+  if (unpinned.length) {
+    app.append(el('h2', { class: 'open-heading', text: 'Open questions' }));
+    unpinned.forEach((q) => app.append(questionCard(q)));
+  }
+  if (!data.views.length) app.append(el('p', { class: 'notice', text: 'No diagrams yet.' }));
+  for (const v of data.views) {
+    app.append(el('div', { class: 'group' }, viewCard(v), open.filter((q) => q.view === v.id).map(questionCard)));
+  }
+  const qCol = el('section', { class: 'rest', 'aria-label': 'Settled, deferred and notes' });
+  app.append(qCol);
 
   // ---- settled and deferred ----
   function reopenControl(q, label) {
@@ -346,10 +373,11 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
   };
   if (window.mermaid && blocks.length) {
     const dark = matchMedia('(prefers-color-scheme: dark)').matches;
-    mermaid.initialize({ startOnLoad: false, suppressErrorRendering: true, securityLevel: 'strict', theme: dark ? 'dark' : 'neutral', fontFamily: 'Public Sans, system-ui, sans-serif' });
+    mermaid.initialize({ startOnLoad: false, suppressErrorRendering: true, securityLevel: 'strict', theme: dark ? 'dark' : 'neutral', fontFamily: 'Public Sans, system-ui, sans-serif', flowchart: { useMaxWidth: false }, sequence: { useMaxWidth: false } });
     blocks.forEach((block, i) => {
       const source = data.views[i].source;
-      mermaid.run({ nodes: [block] }).catch((e) => showSource(block, source,
+      const zoomBtn = block.closest('.view').querySelector('.zoom-btn');
+      mermaid.run({ nodes: [block] }).then(() => { zoomBtn.hidden = false; }).catch((e) => showSource(block, source,
         `This diagram has a Mermaid error, so this shows its source. Tell Claude: ${(e && e.message) || e}`));
     });
   } else if (blocks.length) {
