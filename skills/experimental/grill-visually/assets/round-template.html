@@ -35,6 +35,7 @@ p { margin: 0 0 10px; }
 .view { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; margin: 36px 0 16px; }
 .view-head { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; }
 .view-head button, .zoom-bar button { font: inherit; font-size: .88rem; border-radius: 5px; padding: 4px 12px; cursor: pointer; }
+.view-actions { display: flex; gap: 8px; }
 .open-heading { margin-top: 28px; }
 .card, .rest { max-width: 860px; }
 @media (min-height: 700px) {
@@ -230,10 +231,23 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
     copy.style.width = size.width * scale + 'px';
     copy.style.height = size.height * scale + 'px';
   }
+  async function writeClipboard(text) {
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+      const t = el('textarea', { style: 'position:absolute;left:-9999px' }); t.value = text; document.body.append(t); t.select();
+      document.execCommand('copy'); t.remove();
+    }
+  }
+  async function copySource(v, btn) {
+    await writeClipboard(v.mermaid);
+    btn.textContent = 'Copied';
+    setTimeout(() => { btn.textContent = 'Copy source'; }, 1500);
+  }
   function viewCard(v) {
     const zoomBtn = el('button', { type: 'button', class: 'secondary zoom-btn', hidden: true, text: 'Zoom', onclick: () => openZoom(v) });
+    const sourceBtn = el('button', { type: 'button', class: 'secondary', text: 'Copy source', onclick: () => copySource(v, sourceBtn) });
     return el('section', { class: 'view', id: 'v-' + v.id },
-      el('div', { class: 'view-head' }, el('h2', { text: v.title }), zoomBtn),
+      el('div', { class: 'view-head' }, el('h2', { text: v.title }), el('span', { class: 'view-actions' }, sourceBtn, zoomBtn)),
       v.legend ? el('p', { class: 'legend', text: v.legend }) : null,
       el('div', { class: 'diagram' }, el('pre', { class: 'mermaid', text: v.source })),
     );
@@ -348,11 +362,7 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
       document.getElementById('q-' + problems[0].id).scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    try { await navigator.clipboard.writeText(text); }
-    catch {
-      const t = el('textarea', { style: 'position:absolute;left:-9999px' }); t.value = text; document.body.append(t); t.select();
-      document.execCommand('copy'); t.remove();
-    }
+    await writeClipboard(text);
     status.textContent = 'Copied. Paste it into the terminal.';
   }
   copyBtn.addEventListener('click', copy);
