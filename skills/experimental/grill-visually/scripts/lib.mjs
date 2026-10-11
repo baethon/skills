@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 
-export const GRILL_DIR = '.grill';
+export const GRILL_DIR = '.scratch/grilling';
 export const STATUSES = ['open', 'settled', 'deferred', 'custom'];
 export const TYPES = ['decision', 'term'];
 
@@ -43,7 +43,7 @@ export function resolveSession(ref, root = process.cwd()) {
   const sessions = listSessions(root);
   if (!ref) {
     if (sessions.length === 1) return sessions[0];
-    if (sessions.length === 0) fail('no sessions found in .grill/. Run init.mjs first.');
+    if (sessions.length === 0) fail(`no sessions found in ${GRILL_DIR}/. Run init.mjs first.`);
     fail(`several sessions exist, pass --session <id>: ${sessions.map((s) => path.basename(s)).join(', ')}`);
   }
   const match = sessions.filter((s) => path.basename(s).startsWith(`${ref}-`) || path.basename(s) === ref);

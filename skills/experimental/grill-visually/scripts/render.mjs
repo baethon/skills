@@ -84,7 +84,7 @@ if (!reuse) {
 } else {
   console.log(`Tree unchanged since round ${round}, reopening it.`);
 }
-console.log(htmlFile);
+console.log(`Open: ${htmlFile}`);
 if (!args['no-open']) openInBrowser(htmlFile);
 
 function escapeHtml(s) {

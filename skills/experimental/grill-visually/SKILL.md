@@ -14,22 +14,22 @@ Scripts do the mechanical round-trip. You do the judgment and the docs.
 
 | Script (in `<skill>/scripts/`, where `<skill>` is the folder holding this file) | What it does |
 |---|---|
-| `node <skill>/scripts/init.mjs --title "..." [--slug ...]` | Creates `.grill/<id>-<slug>/` and reports whether `.grill/` is gitignored |
-| `node <skill>/scripts/render.mjs [--session <id>] [--no-open]` | Validates `tree.json`, renders the next round page from the fixed template, opens it |
+| `node <skill>/scripts/init.mjs --title "..." [--slug ...]` | Creates `.scratch/grilling/<id>-<slug>/` and reports whether `.scratch/grilling/` is gitignored |
+| `node <skill>/scripts/render.mjs [--session <id>] [--no-open]` | Validates `tree.json`, renders the next round page from the fixed template, prints its path on an `Open:` line, tries to open it |
 | `node <skill>/scripts/apply.mjs [--session <id>] < answers` | Checks the pasted block belongs to this session and the latest round, applies it to `tree.json`, and reports what needs your judgment, including terms to write to the glossary |
 | `node <skill>/scripts/summary.mjs [--session <id>]` | Prints the shared understanding so far |
 
-Never write or edit round HTML, `meta.json`, or `rounds/`, and never apply a pasted answer block by hand. Inside `.grill/` you only edit `tree.json`. If a script refuses, fix `tree.json` according to its message and run it again. The full `tree.json` shape and the answer format are in `references/schema.md`; read it before writing the first round.
+Never write or edit round HTML, `meta.json`, or `rounds/`, and never apply a pasted answer block by hand. Inside `.scratch/grilling/` you only edit `tree.json`. If a script refuses, fix `tree.json` according to its message and run it again. The full `tree.json` shape and the answer format are in `references/schema.md`; read it before writing the first round.
 
-Run scripts from the project root so `.grill/` lands there. `--session` can be left out when only one session exists.
+Run scripts from the project root so `.scratch/grilling/` lands there. `--session` can be left out when only one session exists.
 
 ## Session flow
 
-1. **Start.** Load the `domain-modeling` skill. It owns GLOSSARY.md and ADRs: where they live, their format, and when to create them. Run `init.mjs` with a short title. If it reports `.grill/` is not ignored, ask once whether to add it to `.gitignore`. Read the glossary `domain-modeling` points you to, so diagram labels and questions use its terms.
+1. **Start.** Load the `domain-modeling` skill. It owns GLOSSARY.md and ADRs: where they live, their format, and when to create them. Run `init.mjs` with a short title. If it reports `.scratch/grilling/` is not ignored, ask once whether to add it to `.gitignore`. Read the glossary `domain-modeling` points you to, so diagram labels and questions use its terms.
 
 2. **Find facts before asking.** Facts are your job and decisions are the user's. Explore the codebase and docs (use sub-agents if available) and record what matters in `tree.facts` with its source. Don't ask the user anything you could look up. A question that depends on a fact still being looked up waits for a later round; ask the rest now. When the user's plan contradicts the code, make the contradiction a question.
 
-3. **Write the round.** Edit `tree.json` to hold the current picture and the frontier, following the guidance below. Then run `render.mjs` and tell the user, in one line, that round N is open in their browser and to paste the copied answers back here.
+3. **Write the round.** Edit `tree.json` to hold the current picture and the frontier, following the guidance below. Then run `render.mjs` and tell the user that round N is ready, with the absolute HTML path from its `Open:` line so they can open it themselves if no browser appeared, and to paste the copied answers back here. Always give the path, because opening the browser often fails silently.
 
 4. **Apply answers.** When the user pastes a block starting with `grill session=`, pass it to `apply.mjs` through a quoted heredoc so nothing in it gets interpreted by the shell:
 

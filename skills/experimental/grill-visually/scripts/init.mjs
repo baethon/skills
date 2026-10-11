@@ -30,7 +30,7 @@ saveMeta(dir, { session: id, slug, round: 0, hash: null, confirmed: false });
 function gitignoreStatus() {
   const { status } = spawnSync('git', ['check-ignore', '-q', path.relative(root, dir)], { cwd: root });
   if (status === 0) return 'ignored';
-  if (status === 1) return 'not ignored (ask once whether to add .grill/ to .gitignore)';
+  if (status === 1) return `not ignored (ask once whether to add ${GRILL_DIR}/ to .gitignore)`;
   return 'not a git repository';
 }
 

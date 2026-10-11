@@ -3,7 +3,7 @@
 ## Session folder
 
 ```
-.grill/<id>-<slug>/
+.scratch/grilling/<id>-<slug>/
   tree.json        # the only file you edit
   meta.json        # written by scripts: round, hash, confirmed
   round-N.html     # rendered pages, one per round
