@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   parseArgs, fail, resolveSession, loadSession, saveMeta, writeJson, readJson,
-  validateTree, hashTree, openInBrowser, escapeRegex,
+  validateTree, hashTree, openInBrowser,
 } from './lib.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -50,14 +50,6 @@ if (!reuse) {
     return { ...v, source };
   });
 
-  // Show node labels instead of ids on the cards.
-  const labelled = questions.map((q) => {
-    const view = (tree.views || []).find((v) => v.id === q.view);
-    if (!view || !q.node) return q;
-    const m = new RegExp(`(?:^|[^A-Za-z0-9_])${escapeRegex(q.node)}\\s*[[({>]+\\s*"?([^\\])}"]+)`).exec(view.mermaid);
-    return m ? { ...q, nodeLabel: m[1].trim() } : q;
-  });
-
   const payload = {
     session: tree.session,
     slug: tree.slug,
@@ -67,7 +59,7 @@ if (!reuse) {
     hash,
     mode,
     views,
-    questions: labelled,
+    questions,
     facts: tree.facts || [],
     changes: round > 1 ? changes : null,
   };

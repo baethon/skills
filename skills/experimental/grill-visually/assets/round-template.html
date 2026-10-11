@@ -58,7 +58,7 @@ mark { background: linear-gradient(transparent 12%, var(--mark) 12%, var(--mark)
 .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 18px; margin-bottom: 16px; }
 .card header { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; margin-bottom: 8px; }
 .qid { font: 13px var(--mono); color: var(--muted); }
-.where, .kind { color: var(--muted); font-size: .88rem; width: 100%; }
+.kind { color: var(--muted); font-size: .88rem; width: 100%; }
 .existing { border-left: 3px solid var(--rule); padding: 2px 0 2px 10px; color: var(--muted); margin: 0 0 12px; }
 fieldset { border: 0; margin: 12px 0 0; padding: 0; }
 legend { position: absolute; left: -9999px; }
@@ -202,13 +202,11 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
       noteField,
     );
 
-    const where = q.view ? `In ${viewTitle(q.view)}${q.node ? `, at "${q.nodeLabel || q.node}"` : ''}` : null;
     return el('article', { class: 'card', id: 'q-' + q.id },
       el('header', null,
         el('span', { class: 'qid', text: q.id }),
         el('h3', null, el('mark', { text: q.title })),
         q.type === 'term' && q.term ? el('span', { class: 'kind', text: KIND[q.term.kind] || 'Term' }) : null,
-        where ? el('a', { class: 'where', href: '#v-' + q.view, text: where }) : null,
       ),
       q.reopened ? el('p', { class: 'existing', text: 'Reopened: ' + q.reopened.reason }) : null,
       q.body ? el('p', { text: q.body }) : null,
