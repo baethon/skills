@@ -259,8 +259,14 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
     unpinned.forEach((q) => app.append(questionCard(q)));
   }
   if (!data.views.length) app.append(el('p', { class: 'notice', text: 'No diagrams yet.' }));
-  for (const v of data.views) {
+  // Question rounds lead with the diagrams that have open questions; the rest wait folded at the bottom.
+  const pinnedViews = isConfirm ? data.views : data.views.filter((v) => open.some((q) => q.view === v.id));
+  const otherViews = data.views.filter((v) => !pinnedViews.includes(v));
+  for (const v of pinnedViews) {
     app.append(el('div', { class: 'group' }, viewCard(v), open.filter((q) => q.view === v.id).map(questionCard)));
+  }
+  if (otherViews.length) {
+    app.append(el('details', { class: 'section other-views' }, el('summary', { text: `Other diagrams (${otherViews.length})` }), otherViews.map(viewCard)));
   }
   const qCol = el('section', { class: 'rest', 'aria-label': 'Settled, deferred and notes' });
   app.append(qCol);
@@ -338,6 +344,12 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
     if (isConfirm && !counts.reopen) lines.push('confirm');
     return { text: lines.join('\n'), problems, counts };
   }
+  // base64url keeps the command free of quotes and spaces, so any shell passes it through unchanged.
+  function applyCommand(text) {
+    const bytes = new TextEncoder().encode(text);
+    const encoded = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return `! node "${data.apply}" --answers ${encoded}`;
+  }
   function update() {
     const { text, counts } = build();
     preview.textContent = text;
@@ -362,8 +374,8 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
       document.getElementById('q-' + problems[0].id).scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    await writeClipboard(text);
-    status.textContent = 'Copied. Paste it into the terminal.';
+    await writeClipboard(applyCommand(text));
+    status.textContent = 'Copied. Paste it into the Claude Code prompt and press Enter.';
   }
   copyBtn.addEventListener('click', copy);
   toggleBtn.addEventListener('click', () => {
@@ -375,21 +387,25 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
 
   // ---- diagrams ----
   const blocks = Array.from(document.querySelectorAll('pre.mermaid'));
-  const showSource = (block, source, message) => {
-    const fallback = el('pre', { class: 'fallback', text: source });
+  const sourceOf = (block) => data.views.find((v) => 'v-' + v.id === block.closest('.view').id).source;
+  const showSource = (block, message) => {
+    const fallback = el('pre', { class: 'fallback', text: sourceOf(block) });
     block.replaceWith(el('p', { class: 'notice', text: message }), fallback);
   };
+  function renderDiagram(block) {
+    const zoomBtn = block.closest('.view').querySelector('.zoom-btn');
+    mermaid.run({ nodes: [block] }).then(() => { zoomBtn.hidden = false; }).catch((e) => showSource(block,
+      `This diagram has a Mermaid error, so this shows its source. Tell Claude: ${(e && e.message) || e}`));
+  }
   if (window.mermaid && blocks.length) {
     const dark = matchMedia('(prefers-color-scheme: dark)').matches;
     mermaid.initialize({ startOnLoad: false, suppressErrorRendering: true, securityLevel: 'strict', theme: dark ? 'dark' : 'neutral', fontFamily: 'Public Sans, system-ui, sans-serif', flowchart: { useMaxWidth: false }, sequence: { useMaxWidth: false } });
-    blocks.forEach((block, i) => {
-      const source = data.views[i].source;
-      const zoomBtn = block.closest('.view').querySelector('.zoom-btn');
-      mermaid.run({ nodes: [block] }).then(() => { zoomBtn.hidden = false; }).catch((e) => showSource(block, source,
-        `This diagram has a Mermaid error, so this shows its source. Tell Claude: ${(e && e.message) || e}`));
-    });
+    // Mermaid measures text, so diagrams inside a closed section render when it first opens.
+    blocks.filter((block) => !block.closest('details.other-views')).forEach(renderDiagram);
+    const other = document.querySelector('details.other-views');
+    if (other) other.addEventListener('toggle', () => other.querySelectorAll('pre.mermaid').forEach(renderDiagram), { once: true });
   } else if (blocks.length) {
-    blocks.forEach((block, i) => showSource(block, data.views[i].source, 'The diagram library did not load, so this shows the diagram source.'));
+    blocks.forEach((block) => showSource(block, 'The diagram library did not load, so this shows the diagram source.'));
   }
 })();
 </script>

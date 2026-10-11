@@ -3,7 +3,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { spawnSync } from 'node:child_process';
 import { GRILL_DIR, parseArgs, fail, slugify, saveTree, saveMeta } from './lib.mjs';
 
 const args = parseArgs(process.argv.slice(2));
@@ -26,16 +25,7 @@ saveTree(dir, {
 });
 saveMeta(dir, { session: id, slug, round: 0, hash: null, confirmed: false });
 
-// git check-ignore exits 0 when ignored, 1 when not, 128 outside a repository.
-function gitignoreStatus() {
-  const { status } = spawnSync('git', ['check-ignore', '-q', path.relative(root, dir)], { cwd: root });
-  if (status === 0) return 'ignored';
-  if (status === 1) return `not ignored (ask once whether to add ${GRILL_DIR}/ to .gitignore)`;
-  return 'not a git repository';
-}
-
 console.log(JSON.stringify({
   session: id,
   folder: path.relative(root, dir),
-  gitignore: gitignoreStatus(),
 }, null, 2));

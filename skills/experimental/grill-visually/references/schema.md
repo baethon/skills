@@ -4,7 +4,7 @@
 
 ```
 .scratch/grilling/<id>-<slug>/
-  tree.json        # the only file you edit
+  tree.json        # the only file you change, through patch.mjs
   meta.json        # written by scripts: round, hash, confirmed
   round-N.html     # rendered pages, one per round
   rounds/round-N.json   # snapshot of tree.json per round, used for "since last round"
@@ -74,16 +74,40 @@
   - `custom` means the user chose "something else". `apply.mjs` sets it; you must resolve it before the next render, either by writing `decision` and setting `settled`, or by re-asking it as `open` with new options.
 - `decision` is `{ "text", "why", "rejected": [..], "glossary"? }`. Write the same shape when you settle a custom answer. Term decisions need `glossary`.
 - `answer` and `history` are written by `apply.mjs`. Leave them alone.
-- `view` and `node` pin a question to a diagram node. The node id must appear in that view's Mermaid source as an id, not only inside a label. Highlighting works for `flowchart` and `graph` views.
+- `view` and `node` pin a question to a diagram node. For open questions the node id must appear in that view's Mermaid source as an id, not only inside a label; pins on settled and deferred questions are not checked. Highlighting works for `flowchart` and `graph` views.
 - Term questions take `term.kind` (`new`, `synonym`, `conflict`) and, for conflicts, `term.existing` with the current glossary text. Options carry `glossary: { term, definition, avoid?, replaces? }`, the entry you would write if that option wins. `replaces` lists terms whose entries go away, for merging synonyms. The scripts never touch the glossary: `apply.mjs` reports each settled term and you write it, following the `domain-modeling` skill.
 
 To change your mind about a settled question without the user asking, set it back to `open`, clear `decision`, and say why in `body`.
 
 Every view needs `id`, `title`, `legend` and `mermaid`. `render.mjs` refuses a tree with no questions.
 
+## Patch
+
+`patch.mjs` reads a partial `tree.json` on stdin. Feed it through a quoted heredoc, so quotes and apostrophes reach it unchanged:
+
+```bash
+node <skill>/scripts/patch.mjs <<'PATCH'
+{
+  "context": "Replaces the old context.",
+  "facts": [{ "text": "Appended to the facts.", "source": "README.md" }],
+  "questions": [
+    { "id": "Q4", "status": "settled", "decision": { "text": "Expire after 7 days", "why": "User's call", "rejected": ["30 days"] } },
+    { "id": "Q7", "type": "decision", "title": "New question", "options": [{ "id": "A", "text": "..." }], "recommended": "A", "why": "...", "status": "open" }
+  ],
+  "views": [{ "id": "flow", "mermaid": "flowchart LR\n  ..." }],
+  "removeViews": ["old-view"]
+}
+PATCH
+```
+
+- `context` replaces, `facts` append.
+- `questions` and `views` merge by id. A new id is added whole; for an existing id, each field you send replaces that field, so send `decision` or `mermaid` in full. Send a field as `null` to clear it, such as `"decision": null`.
+- `removeViews` deletes views by id.
+- The result is validated before writing; on any error nothing is written.
+
 ## Answer block
 
-The page generates this; the user pastes it into the terminal.
+The page generates this and copies it as `! node <skill>/scripts/apply.mjs --answers <base64url of the block>`, which runs straight from the Claude Code prompt in any shell. A bare pasted block goes to `apply.mjs` on stdin.
 
 ```
 grill session=7f3a round=3 tree=a41f2c

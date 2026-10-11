@@ -1,14 +1,18 @@
 #!/usr/bin/env node
-// Apply pasted answers: node apply.mjs [--session 7f3a] < answers.txt
-// The session is taken from the paste header when --session is not given.
+// Apply answers: node apply.mjs [--session 7f3a] --answers <base64url> | < answers.txt
+// The page copies the --answers form; stdin takes a bare pasted block.
+// The session is taken from the answers header when --session is not given.
 import fs from 'node:fs';
 import {
   parseArgs, fail, resolveSession, loadSession, saveTree, saveMeta,
-  parseAnswers, summarize,
+  parseAnswers, summarize, quote,
 } from './lib.mjs';
 
 const args = parseArgs(process.argv.slice(2));
-const parsed = parseAnswers(fs.readFileSync(0, 'utf8'));
+const input = typeof args.answers === 'string'
+  ? Buffer.from(args.answers, 'base64url').toString('utf8')
+  : fs.readFileSync(0, 'utf8');
+const parsed = parseAnswers(input);
 if (parsed.errors.length) fail(`could not read the answers:\n- ${parsed.errors.join('\n- ')}`);
 
 const { header } = parsed;
@@ -62,7 +66,7 @@ for (const a of parsed.answers) {
     };
     q.status = 'settled';
     if (q.type === 'term') report.terms.push(q.decision.glossary);
-    report.settled.push(`${a.id} ${a.verb === 'accept' ? 'accept' : `alt ${chosenId}`}`);
+    report.settled.push(`${a.id} ${a.verb === 'accept' ? 'accept' : `alt ${chosenId}`}${a.note ? ` ${quote(a.note)}` : ''}`);
     if (!why) report.noReason.push(a.id);
   } else if (a.verb === 'defer') {
     q.status = 'deferred';
@@ -82,7 +86,9 @@ add('Deferred', report.deferred);
 add('Reopened', report.reopened);
 add('Needs your interpretation (write decision, then status "settled", or re-ask as "open")', report.custom);
 for (const g of report.terms) {
-  lines.push(`Term settled, write it to the glossary now: ${g.term}: ${g.definition}${g.avoid?.length ? ` (avoid: ${g.avoid.join(', ')})` : ''}${g.replaces?.length ? ` (replaces: ${g.replaces.join(', ')})` : ''}`);
+  lines.push('Term settled, add this entry to the glossary now:', `**${g.term}**:`, g.definition);
+  if (g.avoid?.length) lines.push(`_Avoid_: ${g.avoid.join(', ')}`);
+  if (g.replaces?.length) lines.push(`Remove the entries it replaces: ${g.replaces.join(', ')}`);
 }
 add('Alternative chosen without a reason (ask if it matters)', report.noReason);
 add('Skipped', report.skipped);
@@ -102,5 +108,5 @@ if (parsed.confirm) lines.push('Confirm ignored because questions were reopened 
 
 saveTree(dir, tree);
 saveMeta(dir, meta);
-lines.push('Next: update tree.json (interpret custom answers, add the new frontier, update views), then run render.mjs.');
+lines.push('Next: patch tree.json (interpret custom answers, add the new frontier, update views), then run render.mjs.');
 console.log(lines.join('\n'));

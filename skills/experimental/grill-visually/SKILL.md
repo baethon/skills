@@ -14,24 +14,25 @@ Scripts do the mechanical round-trip. You do the judgment and the docs.
 
 | Script (in `<skill>/scripts/`, where `<skill>` is the folder holding this file) | What it does |
 |---|---|
-| `node <skill>/scripts/init.mjs --title "..." [--slug ...]` | Creates `.scratch/grilling/<id>-<slug>/` and reports whether `.scratch/grilling/` is gitignored |
+| `node <skill>/scripts/init.mjs --title "..." [--slug ...]` | Creates `.scratch/grilling/<id>-<slug>/` |
+| `node <skill>/scripts/patch.mjs [--session <id>] < patch` | Merges a partial `tree.json` into the tree, validates it, and writes it only when valid |
 | `node <skill>/scripts/render.mjs [--session <id>] [--no-open]` | Validates `tree.json`, renders the next round page from the fixed template, prints its path on an `Open:` line, tries to open it |
-| `node <skill>/scripts/apply.mjs [--session <id>] < answers` | Checks the pasted block belongs to this session and the latest round, applies it to `tree.json`, and reports what needs your judgment, including terms to write to the glossary |
+| `node <skill>/scripts/apply.mjs [--session <id>] [--answers <base64url>] < answers` | Checks the answers belong to this session and the latest round, applies them to `tree.json`, and reports every answer and what needs your judgment, including glossary entries ready to paste |
 | `node <skill>/scripts/summary.mjs [--session <id>]` | Prints the shared understanding so far |
 
-Never write or edit round HTML, `meta.json`, or `rounds/`, and never apply a pasted answer block by hand. Inside `.scratch/grilling/` you only edit `tree.json`. If a script refuses, fix `tree.json` according to its message and run it again. The full `tree.json` shape and the answer format are in `references/schema.md`; read it before writing the first round.
+Never write or edit round HTML, `meta.json`, or `rounds/`, and never apply an answer block by hand. Change `tree.json` only through `patch.mjs`, so you never re-read the whole tree. If a script refuses, patch according to its message and run it again. The full `tree.json` shape, the patch format and the answer format are in `references/schema.md`; read it before writing the first round.
 
 Run scripts from the project root so `.scratch/grilling/` lands there. `--session` can be left out when only one session exists.
 
 ## Session flow
 
-1. **Start.** Load the `domain-modeling` skill. It owns GLOSSARY.md and ADRs: where they live, their format, and when to create them. Run `init.mjs` with a short title. If it reports `.scratch/grilling/` is not ignored, ask once whether to add it to `.gitignore`. Read the glossary `domain-modeling` points you to, so diagram labels and questions use its terms.
+1. **Start.** Load the `domain-modeling` skill. It owns GLOSSARY.md and ADRs: where they live, their format, and when to create them. Run `init.mjs` with a short title. Read the glossary `domain-modeling` points you to, so diagram labels and questions use its terms.
 
 2. **Find facts before asking.** Facts are your job and decisions are the user's. Explore the codebase and docs (use sub-agents if available) and record what matters in `tree.facts` with its source. Don't ask the user anything you could look up. A question that depends on a fact still being looked up waits for a later round; ask the rest now. When the user's plan contradicts the code, make the contradiction a question.
 
-3. **Write the round.** Edit `tree.json` to hold the current picture and the frontier, following the guidance below. Then run `render.mjs` and tell the user that round N is ready, with the absolute HTML path from its `Open:` line so they can open it themselves if no browser appeared, and to paste the copied answers back here. Always give the path, because opening the browser often fails silently.
+3. **Write the round.** Patch `tree.json` to hold the current picture and the frontier, following the guidance below. Then run `render.mjs` and tell the user that round N is ready, with the absolute HTML path from its `Open:` line so they can open it themselves if no browser appeared, and to paste the copied command into this prompt. Always give the path, because opening the browser often fails silently.
 
-4. **Apply answers.** When the user pastes a block starting with `grill session=`, pass it to `apply.mjs` through a quoted heredoc so nothing in it gets interpreted by the shell:
+4. **Apply answers.** The page copies a `! node …/apply.mjs --answers …` command, so usually the user runs it and the `apply.mjs` report is already in the conversation. Start from that report. When the user instead pastes a bare block starting with `grill session=`, pass it to `apply.mjs` through a quoted heredoc so nothing in it gets interpreted by the shell:
 
    ```bash
    node <skill>/scripts/apply.mjs <<'GRILL'
@@ -40,14 +41,14 @@ Run scripts from the project root so `.scratch/grilling/` lands there. `--sessio
    ```
 
    Read the report, then do the judgment work.
-   - Write every term the report lists as settled to the glossary now, in the `domain-modeling` format. Do the same when you settle a "something else" term answer yourself.
+   - Write every glossary entry the report prints to the glossary now, as printed. Do the same when you settle a "something else" term answer yourself.
    - Turn each "something else" answer into a decision (set `decision` and status `settled`) or, if it raises a new fork, re-ask it as `open` with new options.
    - When a decision that just settled meets the `domain-modeling` ADR test (hard to reverse, surprising without context, the result of a real trade-off), add a decision card to the next round asking whether to record it, with recording as the recommendation. Write the ADR once that card is accepted.
    - Fold general notes into the picture, recompute the frontier, update the views, add term questions for new vocabulary, and render the next round.
 
    If an alternative was chosen without a reason and the reason matters later, ask for it in the next round. If `apply.mjs` rejects the block as stale or from another session, tell the user which page to answer instead.
 
-   If the user replies in prose instead of a paste, that's fine. Treat it as conversation, update `tree.json` and the docs yourself, and render the next round.
+   If the user replies in prose instead of a paste, that's fine. Treat it as conversation, patch `tree.json` and update the docs yourself, and render the next round.
 
 5. **Confirm.** When no question is open, `render.mjs` produces a confirmation page showing the whole settled picture. A pasted `confirm` makes `apply.mjs` print the shared understanding. Reopened questions send you back to step 3; if a reopened term or ADR changes, update the file you already wrote.
 
@@ -69,7 +70,7 @@ Start with a boundary view showing what is inside the change, which actors touch
 | What data exists | `erDiagram` or `classDiagram` |
 | Where code lives and where tests cut | `flowchart` of components with test seams as dashed edges |
 
-Keep each view to about seven nodes; split into an overview and a detail view rather than growing one. Give every view a one-line `legend` saying what an arrow means, because arrows are ambiguous. Pin each question to the node it affects with `view` and `node`, so the page highlights it on the diagram (this works for `flowchart` views; use node ids that appear in the source). Keep question titles short and put detail in `body` only when the title and options can't carry it.
+Keep each view to about seven nodes; split into an overview and a detail view rather than growing one. Give every view a one-line `legend` saying what an arrow means, because arrows are ambiguous. Title a view by what it shows; round status such as "recommended drawn in" goes stale once questions settle. Remove a view with `removeViews` once no decision needs it, because question rounds lead with the views that have open questions and fold the rest away. Pin each question to the node it affects with `view` and `node`, so the page highlights it on the diagram (this works for `flowchart` views; use node ids that appear in the source). Keep question titles short and put detail in `body` only when the title and options can't carry it.
 
 Prefer showing the recommended answers already drawn into the diagram. The user then reviews a picture of the proposal and only touches what looks wrong.
 

@@ -122,8 +122,9 @@ export function validateTree(tree) {
     if (!TYPES.includes(q.type)) err(`${where}: type must be one of ${TYPES.join(', ')}`);
     if (!STATUSES.includes(q.status)) err(`${where}: status must be one of ${STATUSES.join(', ')}`);
     if (!q.title) err(`${where}: title is missing`);
-    if (q.view && !viewIds.has(q.view)) err(`${where}: view "${q.view}" does not exist`);
-    if (q.node) {
+    // Settled and deferred cards highlight nothing, so only open pins must still match the views.
+    if (q.status === 'open' && q.view && !viewIds.has(q.view)) err(`${where}: view "${q.view}" does not exist`);
+    if (q.status === 'open' && q.node) {
       const view = views.find((v) => v.id === q.view);
       if (!q.view) err(`${where}: node is set but view is not`);
       else if (view && !new RegExp(`(^|[^A-Za-z0-9_])${escapeRegex(q.node)}([^A-Za-z0-9_]|$)`).test(withoutLabels(view.mermaid))) {
@@ -152,7 +153,6 @@ export function validateTree(tree) {
       const blocked = (q.dependsOn || []).filter((d) => byId.get(d) && byId.get(d).status !== 'settled');
       if (blocked.length) err(`${where}: is open but depends on unsettled ${blocked.join(', ')}. Move it to a later round.`);
     }
-    if (q.status === 'custom') err(`${where}: has a custom answer that has not been interpreted yet. Write its decision and set status "settled", or re-ask it as "open" with new options.`);
     if (q.status === 'settled') {
       if (!q.decision || !q.decision.text) err(`${where}: settled questions need decision.text`);
       if (q.type === 'term' && !(q.decision && q.decision.glossary && q.decision.glossary.term)) {

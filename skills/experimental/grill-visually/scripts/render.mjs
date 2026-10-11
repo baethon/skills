@@ -15,6 +15,9 @@ const { tree, meta } = loadSession(dir);
 
 const errors = validateTree(tree);
 if (!(tree.questions || []).length) errors.push('tree.questions is empty. Write the first round before rendering.');
+for (const q of (tree.questions || []).filter((q) => q.status === 'custom')) {
+  errors.push(`question ${q.id}: has a custom answer that has not been interpreted yet. Write its decision and set status "settled", or re-ask it as "open" with new options.`);
+}
 if (errors.length) fail(`tree.json is not ready to render:\n- ${errors.join('\n- ')}`);
 
 const hash = hashTree(tree);
@@ -62,6 +65,7 @@ if (!reuse) {
     questions,
     facts: tree.facts || [],
     changes: round > 1 ? changes : null,
+    apply: path.join(here, 'apply.mjs'),
   };
 
   const template = fs.readFileSync(path.join(here, '..', 'assets', 'round-template.html'), 'utf8');
