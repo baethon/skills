@@ -2,6 +2,12 @@
 name: grill-visually
 description: Visual grilling session that stress-tests a plan or design through diagrams and clickable decision cards instead of walls of questions, keeping GLOSSARY.md up to date and offering ADRs as decisions settle, and ending in a confirmed shared understanding. Use when the user asks to be grilled visually, wants a visual grill, asks to work through a design with diagrams, or invokes grill-visually by name. It does not write a spec or code; it stops at shared understanding.
 disable-model-invocation: true
+hooks:
+  PreToolUse:
+    - matcher: "Write|Edit|MultiEdit|NotebookEdit"
+      hooks:
+        - type: command
+          command: node "${CLAUDE_SKILL_DIR}/scripts/guard.mjs"
 ---
 
 # Grill visually
