@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Grill visually
 
-Interview the user until you reach a shared understanding of a plan, but show each round as a diagram with the open decisions marked on it. The user answers by clicking through a page and pasting one generated block back into the terminal. The session ends when every decision is settled or explicitly deferred and the user confirms. Along the way it produces the same docs as `grill-with-docs`, a GLOSSARY.md updated as terms settle and ADRs for decisions worth recording. It does not produce a spec or code, because those are separate steps the user chooses afterwards.
+Interview the user until you reach a shared understanding of a plan, but show each round as a diagram with the open decisions marked on it. The user answers by clicking through a page served from a local server and pasting one generated command back into the terminal. The session ends when every decision is settled or explicitly deferred and the user confirms. Along the way it produces the same docs as `grill-with-docs`, a GLOSSARY.md updated as terms settle and ADRs for decisions worth recording. It does not produce a spec or code, because those are separate steps the user chooses afterwards.
 
 ## Who does what
 
@@ -16,11 +16,12 @@ Scripts do the mechanical round-trip. You do the judgment and the docs.
 |---|---|
 | `node <skill>/scripts/init.mjs --title "..." [--slug ...]` | Creates `.scratch/grilling/<id>-<slug>/` |
 | `node <skill>/scripts/patch.mjs [--session <id>] < patch` | Merges a partial `tree.json` into the tree, validates it, and writes it only when valid |
-| `node <skill>/scripts/render.mjs [--session <id>] [--no-open]` | Validates `tree.json`, renders the next round page from the fixed template, prints its path on an `Open:` line, tries to open it |
+| `node <skill>/scripts/render.mjs [--session <id>] [--no-open]` | Validates `tree.json`, renders the next round page from the fixed template, starts the session's server or reuses the running one, prints its URL on an `Open:` line, and opens the browser when it started a new server |
 | `node <skill>/scripts/apply.mjs [--session <id>] [--answers <base64url>] < answers` | Checks the answers belong to this session and the latest round, applies them to `tree.json`, and reports every answer and what needs your judgment, including glossary entries ready to paste |
+| `scripts/server.mjs` | Started by `render.mjs`, one per session, on a random port. Serves the latest round, lets the open page reload itself when a new round is rendered, and runs `apply.mjs` for the page's `curl` command. Stops once the session is confirmed, or after an hour with no requests. Never start or stop it yourself |
 | `node <skill>/scripts/summary.mjs [--session <id>]` | Prints the shared understanding so far |
 
-Never write or edit round HTML, `meta.json`, or `rounds/`, and never apply an answer block by hand. Change `tree.json` only through `patch.mjs`, so you never re-read the whole tree. If a script refuses, patch according to its message and run it again. The full `tree.json` shape, the patch format and the answer format are in `references/schema.md`; read it before writing the first round.
+Never write or edit round HTML, `meta.json`, `server.json`, or `rounds/`, and never apply an answer block by hand. Change `tree.json` only through `patch.mjs`, so you never re-read the whole tree. If a script refuses, patch according to its message and run it again. The full `tree.json` shape, the patch format and the answer format are in `references/schema.md`; read it before writing the first round.
 
 Run scripts from the project root so `.scratch/grilling/` lands there. `--session` can be left out when only one session exists.
 
@@ -30,9 +31,9 @@ Run scripts from the project root so `.scratch/grilling/` lands there. `--sessio
 
 2. **Find facts before asking.** Facts are your job and decisions are the user's. Explore the codebase and docs (use sub-agents if available) and record what matters in `tree.facts` with its source. Don't ask the user anything you could look up. A question that depends on a fact still being looked up waits for a later round; ask the rest now. When the user's plan contradicts the code, make the contradiction a question.
 
-3. **Write the round.** Patch `tree.json` to hold the current picture and the frontier, following the guidance below. Then run `render.mjs` and tell the user that round N is ready, with the absolute HTML path from its `Open:` line so they can open it themselves if no browser appeared, and to paste the copied command into this prompt. Always give the path, because opening the browser often fails silently.
+3. **Write the round.** Patch `tree.json` to hold the current picture and the frontier, following the guidance below. Then run `render.mjs` and tell the user that round N is ready, with the URL from its `Open:` line, and to paste the copied command into this prompt. Always give the URL, because opening the browser often fails silently. An open page reloads itself when the next round is rendered, and the URL stays the same while the server runs.
 
-4. **Apply answers.** The page copies a `! node …/apply.mjs --answers …` command, so usually the user runs it and the `apply.mjs` report is already in the conversation. Start from that report. When the user instead pastes a bare block starting with `grill session=`, pass it to `apply.mjs` through a quoted heredoc so nothing in it gets interpreted by the shell:
+4. **Apply answers.** The page copies a `! curl … /apply` command that sends the answers to the session's server, which runs `apply.mjs`, so usually the `apply.mjs` report is already in the conversation. Start from that report. If the curl fails with "connection refused", the server stopped. Run `render.mjs`, which restarts it and reopens the same round, and ask the user to copy the answers again from the new URL. When the user instead pastes a bare block starting with `grill session=`, pass it to `apply.mjs` through a quoted heredoc so nothing in it gets interpreted by the shell:
 
    ```bash
    node <skill>/scripts/apply.mjs <<'GRILL'

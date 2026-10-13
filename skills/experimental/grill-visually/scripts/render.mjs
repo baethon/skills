@@ -2,6 +2,7 @@
 // Render the next round: node render.mjs [--session 7f3a] [--no-open]
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   parseArgs, fail, resolveSession, loadSession, saveMeta, writeJson, readJson,
@@ -80,8 +81,33 @@ if (!reuse) {
 } else {
   console.log(`Tree unchanged since round ${round}, reopening it.`);
 }
-console.log(`Open: ${htmlFile}`);
-if (!args['no-open']) openInBrowser(htmlFile);
+const { url, started } = await ensureServer();
+console.log(`Open: ${url}`);
+if (started && !args['no-open']) openInBrowser(url);
+
+// Reuses the session's running server, so an open tab reloads itself instead of a new one opening.
+async function ensureServer() {
+  const serverFile = path.join(dir, 'server.json');
+  const running = fs.existsSync(serverFile) ? readJson(serverFile) : null;
+  if (running && await isUp(running.url)) return { url: running.url, started: false };
+
+  fs.rmSync(serverFile, { force: true });
+  spawn(process.execPath, [path.join(here, 'server.mjs'), '--session', dir], { detached: true, stdio: 'ignore' }).unref();
+  for (let i = 0; i < 50; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    if (fs.existsSync(serverFile)) return { url: readJson(serverFile).url, started: true };
+  }
+  fail(`the round is rendered, but its server did not start. Open the file instead: ${htmlFile}`);
+}
+
+async function isUp(url) {
+  try {
+    return (await fetch(`${url}state`, { signal: AbortSignal.timeout(1000) })).ok;
+  } catch (error) {
+    if (error.name === 'TimeoutError' || error.cause?.code === 'ECONNREFUSED') return false;
+    throw error;
+  }
+}
 
 function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

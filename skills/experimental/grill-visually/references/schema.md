@@ -7,6 +7,7 @@
   tree.json        # the only file you change, through patch.mjs
   meta.json        # written by scripts: round, hash, confirmed
   round-N.html     # rendered pages, one per round
+  server.json      # {pid, url} of the session's running server, written by server.mjs
   rounds/round-N.json   # snapshot of tree.json per round, used for "since last round"
 ```
 
