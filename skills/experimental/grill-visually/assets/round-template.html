@@ -323,7 +323,7 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
   if (isConfirm) copyBtn.textContent = 'Copy confirmation';
 
   function build() {
-    const lines = [`grill session=${data.session} round=${data.round} tree=${data.hash}`];
+    const lines = [`grill session=${data.session} round=${data.round}`];
     const problems = [];
     const counts = { accept: 0, alt: 0, other: 0, defer: 0, reopen: 0 };
     for (const q of open) {
@@ -346,15 +346,11 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
     if (isConfirm && !counts.reopen) lines.push('confirm');
     return { text: lines.join('\n'), problems, counts };
   }
-  // Served pages post through the session server; a page opened as a file falls back to running apply.mjs.
-  const served = location.protocol.startsWith('http');
   // base64url keeps the command free of quotes and spaces, so any shell passes it through unchanged.
   function applyCommand(text) {
     const bytes = new TextEncoder().encode(text);
     const encoded = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    return served
-      ? `! curl -s --fail-with-body --data-binary ${encoded} ${location.origin}/apply`
-      : `! node "${data.apply}" --answers ${encoded}`;
+    return `! curl -s --fail-with-body --data-binary ${encoded} ${location.origin}/apply`;
   }
   function update() {
     const { text, counts } = build();
@@ -381,9 +377,7 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
       return;
     }
     await writeClipboard(applyCommand(text));
-    status.textContent = served
-      ? `Copied. Paste it into the Claude Code prompt and press Enter. This page reloads when round ${data.round + 1} is ready.`
-      : 'Copied. Paste it into the Claude Code prompt and press Enter.';
+    status.textContent = `Copied. Paste it into the Claude Code prompt and press Enter. This page reloads when round ${data.round + 1} is ready.`;
   }
   copyBtn.addEventListener('click', copy);
   toggleBtn.addEventListener('click', () => {
@@ -394,18 +388,16 @@ details.section > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
   update();
 
   // ---- follow the session ----
-  if (served) {
-    const poll = setInterval(async () => {
-      const response = await fetch('/state', { cache: 'no-store' }).catch(() => null);
-      if (!response || !response.ok) return;
-      const s = await response.json();
-      if (s.round !== data.round) return location.reload();
-      if (!s.confirmed) return;
-      clearInterval(poll);
-      status.textContent = 'Confirmed. Shared understanding reached.';
-      copyBtn.disabled = true;
-    }, 2000);
-  }
+  const poll = setInterval(async () => {
+    const response = await fetch('/state', { cache: 'no-store' }).catch(() => null);
+    if (!response || !response.ok) return;
+    const s = await response.json();
+    if (s.round !== data.round) return location.reload();
+    if (!s.confirmed) return;
+    clearInterval(poll);
+    status.textContent = 'Confirmed. Shared understanding reached.';
+    copyBtn.disabled = true;
+  }, 2000);
 
   // ---- diagrams ----
   const blocks = Array.from(document.querySelectorAll('pre.mermaid'));

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
-  parseArgs, fail, resolveSession, loadSession, saveMeta, writeJson, readJson,
+  PAGE_FILE, PREVIOUS_FILE, parseArgs, fail, resolveSession, loadSession, saveMeta, writeJson, readJson,
   validateTree, hashTree, openInBrowser,
 } from './lib.mjs';
 
@@ -21,10 +21,11 @@ for (const q of (tree.questions || []).filter((q) => q.status === 'custom')) {
 }
 if (errors.length) fail(`tree.json is not ready to render:\n- ${errors.join('\n- ')}`);
 
+// An unchanged, unanswered round is reopened as is, so restarting the server keeps the user's answers valid.
 const hash = hashTree(tree);
-const reuse = meta.hash === hash && meta.round > 0 && meta.appliedRound !== meta.round && fs.existsSync(path.join(dir, `round-${meta.round}.html`));
+const pageFile = path.join(dir, PAGE_FILE);
+const reuse = meta.hash === hash && meta.round > 0 && meta.appliedRound !== meta.round && fs.existsSync(pageFile);
 const round = reuse ? meta.round : meta.round + 1;
-const htmlFile = path.join(dir, `round-${round}.html`);
 
 if (!reuse) {
   const questions = tree.questions || [];
@@ -32,7 +33,7 @@ if (!reuse) {
   const mode = open.length ? 'questions' : 'confirm';
 
   // What moved since the previous round.
-  const prevFile = path.join(dir, 'rounds', `round-${round - 1}.json`);
+  const prevFile = path.join(dir, PREVIOUS_FILE);
   const prev = fs.existsSync(prevFile) ? readJson(prevFile) : { questions: [], views: [] };
   const prevQ = new Map((prev.questions || []).map((q) => [q.id, q]));
   const prevV = new Map((prev.views || []).map((v) => [v.id, v]));
@@ -60,24 +61,18 @@ if (!reuse) {
     title: tree.title,
     context: tree.context || '',
     round,
-    hash,
     mode,
     views,
     questions,
     facts: tree.facts || [],
     changes: round > 1 ? changes : null,
-    apply: path.join(here, 'apply.mjs'),
   };
 
-  const template = fs.readFileSync(path.join(here, '..', 'assets', 'round-template.html'), 'utf8');
-  const json = JSON.stringify(payload).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
-  const html = template.split('__GRILL_DATA__').join(json).split('__GRILL_TITLE__').join(escapeHtml(`${tree.title}, round ${round}`));
-  fs.writeFileSync(htmlFile, html);
-  fs.mkdirSync(path.join(dir, 'rounds'), { recursive: true });
-  writeJson(path.join(dir, 'rounds', `round-${round}.json`), tree);
-  saveMeta(dir, { ...meta, round, hash, renderedAt: new Date().toISOString() });
+  writeJson(pageFile, payload);
+  writeJson(prevFile, tree);
+  saveMeta(dir, { ...meta, round, hash });
 
-  console.log(`Rendered round ${round} (${mode === 'confirm' ? 'confirmation' : `${open.length} open`}) tree=${hash}`);
+  console.log(`Rendered round ${round} (${mode === 'confirm' ? 'confirmation' : `${open.length} open`})`);
 } else {
   console.log(`Tree unchanged since round ${round}, reopening it.`);
 }
@@ -97,7 +92,7 @@ async function ensureServer() {
     await new Promise((resolve) => setTimeout(resolve, 100));
     if (fs.existsSync(serverFile)) return { url: readJson(serverFile).url, started: true };
   }
-  fail(`the round is rendered, but its server did not start. Open the file instead: ${htmlFile}`);
+  fail('the round is rendered, but its server did not start.');
 }
 
 async function isUp(url) {
@@ -109,6 +104,3 @@ async function isUp(url) {
   }
 }
 
-function escapeHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}

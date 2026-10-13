@@ -13,6 +13,9 @@ export function fail(message) {
   process.exit(1);
 }
 
+// Thrown where the server must report a refusal instead of exiting.
+export class GrillError extends Error {}
+
 export function parseArgs(argv) {
   const args = { _: [] };
   for (let i = 0; i < argv.length; i++) {
@@ -43,7 +46,7 @@ export function resolveSession(ref, root = process.cwd()) {
   const sessions = listSessions(root);
   if (!ref) {
     if (sessions.length === 1) return sessions[0];
-    if (sessions.length === 0) fail(`no sessions found in ${GRILL_DIR}/. Run init.mjs first.`);
+    if (sessions.length === 0) fail(`no sessions found in ${GRILL_DIR}/. Start one with patch.mjs --new.`);
     fail(`several sessions exist, pass --session <id>: ${sessions.map((s) => path.basename(s)).join(', ')}`);
   }
   const match = sessions.filter((s) => path.basename(s).startsWith(`${ref}-`) || path.basename(s) === ref);
@@ -230,7 +233,7 @@ export function parseAnswers(text) {
       result.errors.push(`cannot read line: ${line}`);
     }
   }
-  if (!result.header) result.errors.push('the first line must be the header, e.g. "grill session=7f3a round=3 tree=a41f2c"');
+  if (!result.header) result.errors.push('the first line must be the header, e.g. "grill session=7f3a round=3"');
   return result;
 }
 
@@ -277,6 +280,20 @@ export function summarize(tree, meta) {
     for (const f of tree.facts) out.push(`- ${f.text}${f.source ? ` (${f.source})` : ''}`);
   }
   return out.join('\n');
+}
+
+// ---------- page ----------
+
+export const PAGE_FILE = 'page.json';
+export const PREVIOUS_FILE = 'previous.json';
+
+export function renderPage(template, payload) {
+  const json = JSON.stringify(payload).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+  return template.split('__GRILL_DATA__').join(json).split('__GRILL_TITLE__').join(escapeHtml(`${payload.title}, round ${payload.round}`));
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // ---------- browser ----------

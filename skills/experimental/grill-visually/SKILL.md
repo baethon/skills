@@ -14,32 +14,24 @@ Scripts do the mechanical round-trip. You do the judgment and the docs.
 
 | Script (in `<skill>/scripts/`, where `<skill>` is the folder holding this file) | What it does |
 |---|---|
-| `node <skill>/scripts/init.mjs --title "..." [--slug ...]` | Creates `.scratch/grilling/<id>-<slug>/` |
-| `node <skill>/scripts/patch.mjs [--session <id>] < patch` | Merges a partial `tree.json` into the tree, validates it, and writes it only when valid |
-| `node <skill>/scripts/render.mjs [--session <id>] [--no-open]` | Validates `tree.json`, renders the next round page from the fixed template, starts the session's server or reuses the running one, prints its URL on an `Open:` line, and opens the browser when it started a new server |
-| `node <skill>/scripts/apply.mjs [--session <id>] [--answers <base64url>] < answers` | Checks the answers belong to this session and the latest round, applies them to `tree.json`, and reports every answer and what needs your judgment, including glossary entries ready to paste |
-| `scripts/server.mjs` | Started by `render.mjs`, one per session, on a random port. Serves the latest round, lets the open page reload itself when a new round is rendered, and runs `apply.mjs` for the page's `curl` command. Stops once the session is confirmed, or after an hour with no requests. Never start or stop it yourself |
+| `node <skill>/scripts/patch.mjs [--session <id> \| --new] < patch` | Merges a partial `tree.json` into the tree, validates it, and writes it only when valid. `--new` starts a session in `.scratch/grilling/<id>-<slug>/` from a patch carrying `title` |
+| `node <skill>/scripts/render.mjs [--session <id>] [--no-open]` | Validates `tree.json`, freezes the next round, starts the session's server or reuses the running one, prints its URL on an `Open:` line, and opens the browser when it started a new server |
+| `scripts/server.mjs` | Started by `render.mjs`, one per session, on a random port. Serves the latest round, lets the open page reload itself when a new round is rendered, and applies the answers from the page's `curl` command. Stops once the session is confirmed, or after an hour with no requests. Never start or stop it yourself |
 | `node <skill>/scripts/summary.mjs [--session <id>]` | Prints the shared understanding so far |
 
-Never write or edit round HTML, `meta.json`, `server.json`, or `rounds/`, and never apply an answer block by hand. Change `tree.json` only through `patch.mjs`, so you never re-read the whole tree. If a script refuses, patch according to its message and run it again. The full `tree.json` shape, the patch format and the answer format are in `references/schema.md`; read it before writing the first round.
+Never write or edit `page.json`, `previous.json`, `meta.json` or `server.json`. Change `tree.json` only through `patch.mjs`, so you never re-read the whole tree. If a script refuses, patch according to its message and run it again. The patch format is under [tree.json patches](#treejson-patches); read it before writing the first round.
 
 Run scripts from the project root so `.scratch/grilling/` lands there. `--session` can be left out when only one session exists.
 
 ## Session flow
 
-1. **Start.** Load the `domain-modeling` skill. It owns GLOSSARY.md and ADRs: where they live, their format, and when to create them. Run `init.mjs` with a short title. Read the glossary `domain-modeling` points you to, so diagram labels and questions use its terms.
+1. **Start.** Load the `domain-modeling` skill. It owns GLOSSARY.md and ADRs: where they live, their format, and when to create them. Start the session with `patch.mjs --new` and a patch holding a short `title`. Read the glossary `domain-modeling` points you to, so diagram labels and questions use its terms.
 
 2. **Find facts before asking.** Facts are your job and decisions are the user's. Explore the codebase and docs (use sub-agents if available) and record what matters in `tree.facts` with its source. Don't ask the user anything you could look up. A question that depends on a fact still being looked up waits for a later round; ask the rest now. When the user's plan contradicts the code, make the contradiction a question.
 
 3. **Write the round.** Patch `tree.json` to hold the current picture and the frontier, following the guidance below. Then run `render.mjs` and tell the user that round N is ready, with the URL from its `Open:` line, and to paste the copied command into this prompt. Always give the URL, because opening the browser often fails silently. An open page reloads itself when the next round is rendered, and the URL stays the same while the server runs.
 
-4. **Apply answers.** The page copies a `! curl … /apply` command that sends the answers to the session's server, which runs `apply.mjs`, so usually the `apply.mjs` report is already in the conversation. Start from that report. If the curl fails with "connection refused", the server stopped. Run `render.mjs`, which restarts it and reopens the same round, and ask the user to copy the answers again from the new URL. When the user instead pastes a bare block starting with `grill session=`, pass it to `apply.mjs` through a quoted heredoc so nothing in it gets interpreted by the shell:
-
-   ```bash
-   node <skill>/scripts/apply.mjs <<'GRILL'
-   <pasted block, unchanged>
-   GRILL
-   ```
+4. **Apply answers.** The page copies a `! curl … /apply` command that sends the answers to the session's server, which applies them to `tree.json` and replies with a report of every answer and what needs your judgment, so the report is already in the conversation. If the curl fails with "connection refused", the server stopped. Run `render.mjs`, which restarts it and reopens the same round, and ask the user to copy the answers again from the new URL.
 
    Read the report, then do the judgment work.
    - Write every glossary entry the report prints to the glossary now, as printed. Do the same when you settle a "something else" term answer yourself.
@@ -47,11 +39,11 @@ Run scripts from the project root so `.scratch/grilling/` lands there. `--sessio
    - When a decision that just settled meets the `domain-modeling` ADR test (hard to reverse, surprising without context, the result of a real trade-off), add a decision card to the next round asking whether to record it, with recording as the recommendation. Write the ADR once that card is accepted.
    - Fold general notes into the picture, recompute the frontier, update the views, add term questions for new vocabulary, and render the next round.
 
-   If an alternative was chosen without a reason and the reason matters later, ask for it in the next round. If `apply.mjs` rejects the block as stale or from another session, tell the user which page to answer instead.
+   If an alternative was chosen without a reason and the reason matters later, ask for it in the next round. If the report rejects the answers as stale or from another session, tell the user which page to answer instead.
 
    If the user replies in prose instead of a paste, that's fine. Treat it as conversation, patch `tree.json` and update the docs yourself, and render the next round.
 
-5. **Confirm.** When no question is open, `render.mjs` produces a confirmation page showing the whole settled picture. A pasted `confirm` makes `apply.mjs` print the shared understanding. Reopened questions send you back to step 3; if a reopened term or ADR changes, update the file you already wrote.
+5. **Confirm.** When no question is open, `render.mjs` produces a confirmation page showing the whole settled picture. A confirmation makes the report print the shared understanding. Reopened questions send you back to step 3; if a reopened term or ADR changes, update the file you already wrote.
 
 6. **Stop.** After confirmation, don't act on the result. Say in one sentence what the user can do next, such as turning it into a spec or going straight to implementation, and wait. The shared understanding now lives in this conversation, the glossary and any ADRs.
 
@@ -80,3 +72,59 @@ When domain relationships are in play, use the `body` of a question to pose a co
 ## Vocabulary
 
 Diagram labels force nouns, so watch them. Raise a term question (`type: "term"`, id prefix `T`) when a new domain term appears, when two words are being used for one thing, or when a word is used differently than the glossary says. Flag that last kind clearly in the body, because changing a definition can quietly affect code that relies on the old one. Each option carries the glossary entry it would write; use `replaces` when merging synonyms removes an existing entry. Only terms specific to this project qualify, as `domain-modeling` defines them, otherwise the glossary fills with noise.
+
+## tree.json patches
+
+Feed `patch.mjs` a partial tree through a quoted heredoc, so quotes and apostrophes reach it unchanged. Example of a first round:
+
+```bash
+node <skill>/scripts/patch.mjs --new <<'PATCH'
+{
+  "title": "Invite a teammate",
+  "context": "One or two sentences on what is being decided and why now.",
+  "facts": [{ "text": "Invites are emailed by the notifications service.", "source": "services/notify/README.md" }],
+  "views": [{
+    "id": "flow",
+    "title": "Invite flow",
+    "legend": "Arrow means happens before.",
+    "mermaid": "flowchart LR\n  invite[Admin invites] --> sent[Invite sent] --> accept[Invitee accepts]"
+  }],
+  "questions": [
+    {
+      "title": "Who can invite?",
+      "body": "Optional detail when the title and options are not enough.",
+      "view": "flow", "node": "invite",
+      "options": [{ "id": "A", "text": "Admins only" }, { "id": "B", "text": "Any member" }],
+      "recommended": "A",
+      "why": "Seats are billed, so inviting is a spending decision."
+    },
+    {
+      "type": "term",
+      "title": "What is a seat?",
+      "term": { "kind": "new" },
+      "options": [
+        { "id": "A", "text": "A paid slot", "glossary": { "term": "Seat", "definition": "A paid slot in a workspace, held by at most one member.", "avoid": ["license"] } },
+        { "id": "B", "text": "A person", "glossary": { "term": "Seat", "definition": "A member who is billed." } }
+      ],
+      "recommended": "A",
+      "why": "Billing counts slots, not people; a slot can sit empty."
+    }
+  ]
+}
+PATCH
+```
+
+Later patches drop `--new` and send only what changed, such as `{ "questions": [{ "id": "Q4", "status": "settled", "decision": { "text": "Expire after 7 days", "why": "User's call", "rejected": ["30 days"] } }], "removeViews": ["old-view"] }`.
+
+- `title` and `context` replace, `facts` append, `removeViews` deletes views by id.
+- `questions` and `views` merge by id. For an existing id, each field you send replaces that field, so send `decision` or `mermaid` in full, and send `null` to clear one. A question without an id is new and gets the next `Q` or `T` id, printed by `patch.mjs`. Give it an id yourself when another question in the same patch needs it in `dependsOn`.
+- Every view needs `id`, `title`, `legend` and `mermaid`.
+- `type` is `decision` (the default) or `term`. Term questions take `term.kind` (`new`, `synonym`, `conflict`) and, for conflicts, `term.existing` with the current glossary text. Their options carry `glossary: { term, definition, avoid?, replaces? }`, the entry you would write if that option wins; `replaces` lists terms whose entries go away when merging synonyms.
+- `status` defaults to `open` for new questions.
+  - `open` is on the frontier and shown as a card. It needs `options`, `recommended` and `why`, and every `dependsOn` question must be `settled`.
+  - `settled` needs `decision`, shaped `{ "text", "why", "rejected": [..], "glossary"? }`. Term decisions need `glossary`.
+  - `deferred` is explicitly left open. It stays visible and must not be decided silently later.
+  - `custom` means the user chose "something else". Resolve it before the next render by writing `decision` and setting `settled`, or by re-asking it as `open` with new options.
+- To change your mind about a settled question, set it back to `open`, clear `decision`, and say why in `body`.
+- `view` and `node` pin a question to a diagram node. For open questions the node id must appear in that view's Mermaid source as an id, not only inside a label.
+- `answer` and `history` are written when answers are applied. Leave them alone.
