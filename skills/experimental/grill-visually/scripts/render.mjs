@@ -50,7 +50,7 @@ if (!reuse) {
     const nodes = open.filter((q) => q.view === v.id && q.node).map((q) => q.node);
     const isFlow = /^\s*(flowchart|graph)\b/.test(v.mermaid);
     const source = isFlow && nodes.length
-      ? `${v.mermaid.trimEnd()}\n  classDef grillOpen fill:#FFE873,stroke:#8A6D00,stroke-width:1.5px,stroke-dasharray:5 4,color:#1D2733\n  class ${[...new Set(nodes)].join(',')} grillOpen`
+      ? `${v.mermaid.trimEnd()}\n  classDef grillOpen fill:#fbf0d9,stroke:#8a5a00,stroke-width:1.5px,stroke-dasharray:5 4,color:#1b2130\n  class ${[...new Set(nodes)].join(',')} grillOpen`
       : v.mermaid;
     return { ...v, source };
   });
