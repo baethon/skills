@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__GRILL_TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one reading column; each diagram sticks above the cards that ask about it. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --sunk: #eef0f4; --ink: #1b2130; --muted: #5b6474; --line: #d9dde5;
+  --accent: #4b4fc2; --accent-ink: #ffffff;
+  --ok: #1d7a3a; --ok-soft: #e1f3e6; --bad: #b3261e; --bad-soft: #fbe5e3; --warn: #8a5a00; --warn-soft: #fbf0d9;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151c; --surface: #1a1f29; --sunk: #222835; --ink: #e6e9f0; --muted: #9aa3b4; --line: #313848;
+    --accent: #9a9dff; --accent-ink: #12151c;
+    --ok: #5fd07f; --ok-soft: #173322; --bad: #ff8a80; --bad-soft: #3a1d1b; --warn: #f0b955; --warn-soft: #362a12;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.6; }
+main { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 40px 160px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.2; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 650; letter-spacing: -0.01em; margin-bottom: 10px; }
+h2 { font-size: 22px; font-weight: 650; margin-bottom: 12px; }
+h3 { font-size: 18px; font-weight: 500; }
+p { margin: 0 0 10px; }
+.session { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.meta { color: var(--muted); }
+.context { font-size: 17px; color: var(--muted); max-width: 680px; margin-top: 4px; }
+.changes { margin: 20px 0 0; padding: 14px 18px; background: var(--sunk); border-radius: 10px; }
+.changes a { color: var(--accent); }
+.view { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 40px 0 16px; }
+.view-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; justify-content: space-between; }
+.view-head h2 { font-size: 18px; margin: 0; }
+.view-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.view.min .legend, .view.min .diagram, .view.min .zoom-btn { display: none; }
+.open-heading { margin-top: 44px; font-size: 26px; }
+.card, .rest { max-width: 860px; }
+@media (min-height: 700px) {
+  .group > .view { position: sticky; top: 0; z-index: 1; max-height: 45vh; display: flex; flex-direction: column; box-shadow: 0 6px 16px -12px rgb(0 0 0 / .35); }
+  .group > .view .diagram { flex: 1; min-height: 0; overflow: auto; }
+  .group > .card { scroll-margin-top: 47vh; }
+  .group:has(> .view.min) > .card { scroll-margin-top: 80px; }
+}
+.rest { margin-top: 44px; display: grid; gap: 8px; }
+dialog.zoom { width: 96vw; height: 92vh; max-width: none; max-height: none; padding: 0; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; }
+dialog.zoom::backdrop { background: rgb(0 0 0 / .6); }
+.zoom-bar { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.zoom-bar h2 { margin: 0; font-size: 18px; }
+.zoom-body { height: calc(100% - 58px); overflow: auto; padding: 16px; }
+.zoom-body svg { display: block; margin: 0 auto; max-width: none; }
+.view .legend { color: var(--muted); font-size: 13.5px; margin: 4px 0 10px; }
+.view .diagram { overflow-x: auto; }
+.view pre.mermaid { margin: 0; background: transparent; }
+.view pre.fallback { font: 12.5px/1.5 var(--mono); white-space: pre; overflow-x: auto; color: var(--muted); }
+.notice { color: var(--muted); font-size: 14px; }
+mark { background: var(--warn-soft); color: var(--ink); padding: 0 .25em; border-radius: 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
+.card header { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; margin-bottom: 8px; }
+.qid { font-family: var(--mono); font-size: 12px; padding: 1px 7px; border-radius: 5px; background: var(--sunk); border: 1px solid var(--line); color: var(--muted); }
+.chip { display: inline-flex; align-items: center; font-family: var(--body); font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.kind { background: var(--warn-soft); color: var(--warn); }
+.existing { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; color: var(--muted); margin: 0 0 12px; }
+fieldset { border: 0; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; }
+legend { position: absolute; left: -9999px; }
+.option { display: grid; grid-template-columns: 22px 1fr; gap: 2px 8px; padding: 9px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.option:hover { background: var(--sunk); }
+.option:has(input:checked) { background: var(--sunk); border-color: var(--line); }
+.option input { margin: 5px 0 0; accent-color: var(--accent); }
+.option .why { grid-column: 2; color: var(--muted); font-size: 14px; }
+.option .avoid { grid-column: 2; color: var(--muted); font-size: 13px; }
+.rec { margin-left: 8px; background: var(--ok-soft); color: var(--ok); }
+textarea { width: 100%; min-height: 64px; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: vertical; }
+textarea:focus, input:focus-visible, button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.field { margin: 8px 0 0 30px; }
+.field label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.error { color: var(--bad); font-size: 13px; margin-top: 4px; }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { border-top: 1px solid var(--line); padding: 12px 0; }
+.list .decision { margin: 6px 0 0; }
+.list .why { color: var(--muted); font-size: 14px; margin: 2px 0 0; }
+.reopen { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13.5px; margin-top: 6px; cursor: pointer; }
+details.section { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 18px; margin: 8px 0; }
+details.section > summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; gap: 10px; }
+details.section > summary::-webkit-details-marker { display: none; }
+details.section > summary::before { content: "+"; font-family: var(--mono); color: var(--muted); width: 12px; }
+details.section[open] > summary::before { content: "\2212"; }
+details.section[open] > summary { margin-bottom: 8px; }
+details.other-views { max-width: none; }
+details.other-views .view { margin: 12px 0; }
+.facts li { color: var(--muted); font-size: 14px; }
+.general { margin-top: 32px; }
+.general h2 { font-size: 22px; }
+.general textarea { min-height: 72px; }
+.composer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.composer-inner { max-width: 1120px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; }
+.tally { flex: 1 1 260px; color: var(--muted); font-variant-numeric: tabular-nums; }
+button { font: inherit; font-size: 14px; border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+.view-head button, .zoom-bar button { font-size: 13px; padding: 4px 10px; }
+.primary { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); font-weight: 600; }
+.secondary { background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+.secondary:hover { background: var(--sunk); }
+.composer pre { flex-basis: 100%; margin: 0; max-height: 30vh; overflow: auto; font: 12.5px/1.5 var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; }
+.status { flex-basis: 100%; font-size: 14px; color: var(--ok); min-height: 1.2em; }
+.status.bad { color: var(--bad); }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div class="composer" role="region" aria-label="Answers">
+  <div class="composer-inner">
+    <span class="tally" id="tally"></span>
+    <button class="secondary" id="toggle" type="button" aria-expanded="false">Show text</button>
+    <button class="primary" id="copy" type="button">Copy answers</button>
+    <pre id="preview" hidden></pre>
+    <span class="status" id="status" aria-live="polite"></span>
+  </div>
+</div>
+<script id="grill-data" type="application/json">__GRILL_DATA__</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  const data = JSON.parse(document.getElementById('grill-data').textContent);
+  const app = document.getElementById('app');
+  const state = {};      // question id -> { choice, note, other }
+  const reopen = {};     // question id -> { on, reason }
+  const general = { note: '' };
+
+  function el(tag, attrs, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+      else if (k === 'text') node.textContent = v;
+      else node.setAttribute(k, v === true ? '' : v);
+    }
+    for (const c of children.flat()) if (c !== null && c !== undefined && c !== false) node.append(c.nodeType ? c : document.createTextNode(String(c)));
+    return node;
+  }
+  const quote = (t) => '"' + String(t).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n') + '"';
+  const viewTitle = (id) => (data.views.find((v) => v.id === id) || {}).title || id;
+  const questions = data.questions || [];
+  const open = questions.filter((q) => q.status === 'open');
+  const settled = questions.filter((q) => q.status === 'settled');
+  const deferred = questions.filter((q) => q.status === 'deferred');
+
+  // ---- header ----
+  const isConfirm = data.mode === 'confirm';
+  app.append(
+    el('p', { class: 'session', text: `${data.session}-${data.slug} · round ${data.round}` }),
+    el('h1', { text: data.title }),
+    el('p', { class: 'meta', text: `Round ${data.round}. ` + (isConfirm
+      ? 'Everything is settled or deferred. Check the picture, then confirm.'
+      : `${open.length} ${open.length === 1 ? 'question' : 'questions'} on the frontier. Untouched questions count as accepted.`) }),
+    data.context ? el('p', { class: 'context', text: data.context }) : null,
+  );
+
+  if (data.changes) {
+    const c = data.changes;
+    const parts = [];
+    const link = (id) => el('a', { href: '#q-' + id, text: id });
+    const join = (ids) => ids.flatMap((id, i) => (i ? [', ', link(id)] : [link(id)]));
+    if (c.settled.length) parts.push(['Settled ', ...join(c.settled)]);
+    if (c.added.length) parts.push(['New ', ...join(c.added)]);
+    if (c.reopened.length) parts.push(['Reopened ', ...join(c.reopened)]);
+    if (c.deferred.length) parts.push(['Deferred ', ...join(c.deferred)]);
+    if (c.views.length) parts.push(['Updated ' + c.views.map(viewTitle).join(', ')]);
+    if (parts.length) app.append(el('p', { class: 'changes' }, 'Since last round: ', parts.flatMap((p, i) => (i ? ['. ', ...p] : p)), '.'));
+  }
+
+  // ---- open questions ----
+  const KIND = { new: 'New term', synonym: 'Two words for one thing', conflict: 'Used differently than the glossary says' };
+  function optionLabel(q, o) {
+    if (q.type !== 'term') return [o.id + '. ' + o.text];
+    return [el('strong', { text: o.glossary.term }), ': ' + o.glossary.definition];
+  }
+  function optionExtra(q, o) {
+    const g = o.glossary;
+    return q.type === 'term' && g.avoid && g.avoid.length ? el('span', { class: 'avoid', text: 'Avoid: ' + g.avoid.join(', ') }) : null;
+  }
+
+  function questionCard(q) {
+    state[q.id] = { choice: q.recommended, note: '', other: '' };
+    const name = 'choice-' + q.id;
+    const noteField = el('div', { class: 'field' },
+      el('label', { for: 'note-' + q.id, text: 'Reason or note (optional)' }),
+      el('textarea', { id: 'note-' + q.id, oninput: (e) => { state[q.id].note = e.target.value; update(); } }));
+    const otherError = el('div', { class: 'error', hidden: true, text: 'Describe what you want instead.' });
+    const otherField = el('div', { class: 'field', hidden: true },
+      el('label', { for: 'other-' + q.id, text: 'What should it be instead?' }),
+      el('textarea', { id: 'other-' + q.id, oninput: (e) => { state[q.id].other = e.target.value; otherError.hidden = !!e.target.value.trim(); update(); } }),
+      otherError);
+    q._otherError = otherError;
+
+    function choose(value) {
+      state[q.id].choice = value;
+      otherField.hidden = value !== '__other';
+      noteField.hidden = value === '__other';
+      if (value !== '__other') otherError.hidden = true;
+      update();
+    }
+    const radio = (value, checked) => el('input', { type: 'radio', name, value, checked, onchange: () => choose(value) });
+    const ordered = [...q.options].sort((a, b) => (a.id === q.recommended ? -1 : b.id === q.recommended ? 1 : 0));
+
+    const fieldset = el('fieldset', null, el('legend', { text: q.title }),
+      ordered.map((o) => el('label', { class: 'option' },
+        radio(o.id, o.id === q.recommended),
+        el('span', null, ...optionLabel(q, o), o.id === q.recommended ? el('span', { class: 'chip rec', text: 'Recommended' }) : null),
+        optionExtra(q, o),
+        o.id === q.recommended && q.why ? el('span', { class: 'why', text: q.why }) : null,
+      )),
+      el('label', { class: 'option' }, radio('__other', false), el('span', { text: 'Something else' })),
+      otherField,
+      el('label', { class: 'option' }, radio('__defer', false), el('span', { text: 'Defer, decide later' })),
+      noteField,
+    );
+
+    return el('article', { class: 'card', id: 'q-' + q.id },
+      el('header', null,
+        el('span', { class: 'qid', text: q.id }),
+        el('h3', null, el('mark', { text: q.title })),
+        q.type === 'term' && q.term ? el('span', { class: 'chip kind', text: KIND[q.term.kind] || 'Term' }) : null,
+      ),
+      q.reopened ? el('p', { class: 'existing', text: 'Reopened: ' + q.reopened.reason }) : null,
+      q.body ? el('p', { text: q.body }) : null,
+      q.type === 'term' && q.term && q.term.existing ? el('p', { class: 'existing', text: 'Glossary says: ' + q.term.existing }) : null,
+      fieldset,
+    );
+  }
+  // ---- questions, each pinned one under its view ----
+  const zoom = el('dialog', { class: 'zoom', 'aria-label': 'Zoomed diagram', onclick: (e) => { if (e.target === zoom) zoom.close(); } });
+  document.body.append(zoom);
+  function openZoom(v) {
+    const svg = document.querySelector('#v-' + v.id + ' .diagram svg');
+    const size = svg.getBoundingClientRect();
+    const copy = svg.cloneNode(true);
+    const body = el('div', { class: 'zoom-body' }, copy);
+    zoom.replaceChildren(
+      el('div', { class: 'zoom-bar' }, el('h2', { text: v.title }), el('button', { type: 'button', class: 'secondary', text: 'Close', onclick: () => zoom.close() })),
+      body);
+    zoom.showModal();
+    const scale = Math.max(1, Math.min((body.clientWidth - 32) / size.width, (body.clientHeight - 32) / size.height));
+    copy.style.width = size.width * scale + 'px';
+    copy.style.height = size.height * scale + 'px';
+  }
+  async function writeClipboard(text) {
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+      const t = el('textarea', { style: 'position:absolute;left:-9999px' }); t.value = text; document.body.append(t); t.select();
+      document.execCommand('copy'); t.remove();
+    }
+  }
+  async function copySource(v, btn) {
+    await writeClipboard(v.mermaid);
+    btn.textContent = 'Copied';
+    setTimeout(() => { btn.textContent = 'Copy source'; }, 1500);
+  }
+  function viewCard(v) {
+    const zoomBtn = el('button', { type: 'button', class: 'secondary zoom-btn', hidden: true, text: 'Zoom', onclick: () => openZoom(v) });
+    const sourceBtn = el('button', { type: 'button', class: 'secondary', text: 'Copy source', onclick: () => copySource(v, sourceBtn) });
+    const minBtn = el('button', { type: 'button', class: 'secondary', 'aria-expanded': 'true', text: 'Minimize', onclick: () => toggleMinimized(view, minBtn) });
+    const view = el('section', { class: 'view', id: 'v-' + v.id },
+      el('div', { class: 'view-head' }, el('h2', { text: v.title }), el('span', { class: 'view-actions' }, sourceBtn, zoomBtn, minBtn)),
+      v.legend ? el('p', { class: 'legend', text: v.legend }) : null,
+      el('div', { class: 'diagram' }, el('pre', { class: 'mermaid', text: v.source })),
+    );
+    return view;
+  }
+  function toggleMinimized(view, btn) {
+    const minimized = view.classList.toggle('min');
+    btn.textContent = minimized ? 'Expand' : 'Minimize';
+    btn.setAttribute('aria-expanded', String(!minimized));
+  }
+  const viewIds = new Set(data.views.map((v) => v.id));
+  const unpinned = open.filter((q) => !viewIds.has(q.view));
+  if (unpinned.length) {
+    app.append(el('h2', { class: 'open-heading', text: 'Open questions' }));
+    unpinned.forEach((q) => app.append(questionCard(q)));
+  }
+  if (!data.views.length) app.append(el('p', { class: 'notice', text: 'No diagrams yet.' }));
+  // Question rounds lead with the diagrams that have open questions; the rest wait folded at the bottom.
+  const pinnedViews = isConfirm ? data.views : data.views.filter((v) => open.some((q) => q.view === v.id));
+  const otherViews = data.views.filter((v) => !pinnedViews.includes(v));
+  for (const v of pinnedViews) {
+    app.append(el('div', { class: 'group' }, viewCard(v), open.filter((q) => q.view === v.id).map(questionCard)));
+  }
+  if (otherViews.length) {
+    app.append(el('details', { class: 'section other-views' }, el('summary', { text: `Other diagrams (${otherViews.length})` }), otherViews.map(viewCard)));
+  }
+  const qCol = el('section', { class: 'rest', 'aria-label': 'Settled, deferred and notes' });
+  app.append(qCol);
+
+  // ---- settled and deferred ----
+  function reopenControl(q, label) {
+    reopen[q.id] = { on: false, reason: '' };
+    const err = el('div', { class: 'error', hidden: true, text: 'Say why it needs another look.' });
+    const field = el('div', { class: 'field', hidden: true },
+      el('label', { for: 'reopen-' + q.id, text: 'Why reopen it?' }),
+      el('textarea', { id: 'reopen-' + q.id, oninput: (e) => { reopen[q.id].reason = e.target.value; err.hidden = !!e.target.value.trim(); update(); } }), err);
+    q._reopenError = err;
+    return [el('label', { class: 'reopen' },
+      el('input', { type: 'checkbox', onchange: (e) => { reopen[q.id].on = e.target.checked; field.hidden = !e.target.checked; if (!e.target.checked) err.hidden = true; update(); } }),
+      label), field];
+  }
+  function settledItem(q) {
+    const d = q.decision || {};
+    return el('li', { id: 'q-' + q.id },
+      el('span', { class: 'qid', text: q.id + ' ' }), el('strong', { text: q.title }),
+      el('p', { class: 'decision', text: d.glossary ? `${d.glossary.term}: ${d.glossary.definition}` : d.text }),
+      d.why ? el('p', { class: 'why', text: 'Why: ' + d.why }) : null,
+      ...reopenControl(q, 'Reopen'));
+  }
+  function deferredItem(q) {
+    return el('li', { id: 'q-' + q.id },
+      el('span', { class: 'qid', text: q.id + ' ' }), el('strong', { text: q.title }),
+      q.answer && q.answer.note ? el('p', { class: 'why', text: q.answer.note }) : null,
+      ...reopenControl(q, 'Pick it up now'));
+  }
+  if (settled.length) {
+    const d = el('details', { class: 'section', open: isConfirm }, el('summary', { text: `Settled (${settled.length})` }), el('ul', { class: 'list' }, settled.map(settledItem)));
+    qCol.append(d);
+  }
+  if (deferred.length) {
+    qCol.append(el('details', { class: 'section', open: isConfirm }, el('summary', { text: `Deferred (${deferred.length})` }), el('ul', { class: 'list' }, deferred.map(deferredItem))));
+  }
+  if (data.facts.length) {
+    qCol.append(el('details', { class: 'section' }, el('summary', { text: `Facts found (${data.facts.length})` }),
+      el('ul', { class: 'list facts' }, data.facts.map((f) => el('li', { text: f.text + (f.source ? ` (${f.source})` : '') })))));
+  }
+  qCol.append(el('div', { class: 'general' },
+    el('h2', null, el('label', { for: 'general-note', text: 'Anything else?' })),
+    el('textarea', { id: 'general-note', placeholder: 'Context, worries, or things Claude has not asked about', oninput: (e) => { general.note = e.target.value; update(); } })));
+
+  // ---- composer ----
+  const preview = document.getElementById('preview');
+  const tally = document.getElementById('tally');
+  const status = document.getElementById('status');
+  const copyBtn = document.getElementById('copy');
+  const toggleBtn = document.getElementById('toggle');
+  if (isConfirm) copyBtn.textContent = 'Copy confirmation';
+
+  function build() {
+    const lines = [`grill session=${data.session} round=${data.round}`];
+    const problems = [];
+    const counts = { accept: 0, alt: 0, other: 0, defer: 0, reopen: 0 };
+    for (const q of open) {
+      const s = state[q.id];
+      const note = s.note.trim() ? ' ' + quote(s.note.trim()) : '';
+      if (s.choice === '__other') {
+        if (!s.other.trim()) problems.push(q);
+        lines.push(`${q.id} other ${quote(s.other.trim())}`); counts.other++;
+      } else if (s.choice === '__defer') { lines.push(`${q.id} defer${note}`); counts.defer++; }
+      else if (s.choice === q.recommended) { lines.push(`${q.id} accept${note}`); counts.accept++; }
+      else { lines.push(`${q.id} alt ${s.choice}${note}`); counts.alt++; }
+    }
+    for (const q of [...settled, ...deferred]) {
+      const r = reopen[q.id];
+      if (!r || !r.on) continue;
+      if (!r.reason.trim()) problems.push(q);
+      lines.push(`${q.id} reopen ${quote(r.reason.trim())}`); counts.reopen++;
+    }
+    if (general.note.trim()) lines.push(`note ${quote(general.note.trim())}`);
+    if (isConfirm && !counts.reopen) lines.push('confirm');
+    return { text: lines.join('\n'), problems, counts };
+  }
+  // base64url keeps the command free of quotes and spaces, so any shell passes it through unchanged.
+  function applyCommand(text) {
+    const bytes = new TextEncoder().encode(text);
+    const encoded = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return `! curl -s --fail-with-body --data-binary ${encoded} ${location.origin}/apply`;
+  }
+  function update() {
+    const { text, counts } = build();
+    preview.textContent = text;
+    const parts = [];
+    if (counts.accept) parts.push(`${counts.accept} accepted`);
+    if (counts.alt) parts.push(`${counts.alt} alternative`);
+    if (counts.other) parts.push(`${counts.other} something else`);
+    if (counts.defer) parts.push(`${counts.defer} deferred`);
+    if (counts.reopen) parts.push(`${counts.reopen} reopened`);
+    tally.textContent = isConfirm
+      ? (counts.reopen ? `${counts.reopen} reopened, so this sends you back a round` : 'Ready to confirm')
+      : (parts.join(', ') || 'Nothing to answer');
+    status.textContent = '';
+    status.classList.remove('bad');
+  }
+  async function copy() {
+    const { text, problems } = build();
+    if (problems.length) {
+      problems.forEach((q) => { if (q._otherError && state[q.id] && state[q.id].choice === '__other') q._otherError.hidden = false; if (q._reopenError && reopen[q.id] && reopen[q.id].on) q._reopenError.hidden = false; });
+      status.textContent = 'Fill in ' + problems.map((q) => q.id).join(', ') + ' before copying.';
+      status.classList.add('bad');
+      document.getElementById('q-' + problems[0].id).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    await writeClipboard(applyCommand(text));
+    status.textContent = `Copied. Paste it into the Claude Code prompt and press Enter. This page reloads when round ${data.round + 1} is ready.`;
+  }
+  copyBtn.addEventListener('click', copy);
+  toggleBtn.addEventListener('click', () => {
+    preview.hidden = !preview.hidden;
+    toggleBtn.setAttribute('aria-expanded', String(!preview.hidden));
+    toggleBtn.textContent = preview.hidden ? 'Show text' : 'Hide text';
+  });
+  update();
+
+  // ---- follow the session ----
+  const poll = setInterval(async () => {
+    const response = await fetch('/state', { cache: 'no-store' }).catch(() => null);
+    if (!response || !response.ok) return;
+    const s = await response.json();
+    if (s.round !== data.round) return location.reload();
+    if (!s.confirmed) return;
+    clearInterval(poll);
+    status.textContent = 'Confirmed. Shared understanding reached.';
+    copyBtn.disabled = true;
+  }, 2000);
+
+  // ---- diagrams ----
+  const blocks = Array.from(document.querySelectorAll('pre.mermaid'));
+  const sourceOf = (block) => data.views.find((v) => 'v-' + v.id === block.closest('.view').id).source;
+  const showSource = (block, message) => {
+    const fallback = el('pre', { class: 'fallback', text: sourceOf(block) });
+    block.replaceWith(el('p', { class: 'notice', text: message }), fallback);
+  };
+  function renderDiagram(block) {
+    const zoomBtn = block.closest('.view').querySelector('.zoom-btn');
+    mermaid.run({ nodes: [block] }).then(() => { zoomBtn.hidden = false; }).catch((e) => showSource(block,
+      `This diagram has a Mermaid error, so this shows its source. Tell Claude: ${(e && e.message) || e}`));
+  }
+  if (window.mermaid && blocks.length) {
+    const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: false, suppressErrorRendering: true, securityLevel: 'strict', theme: dark ? 'dark' : 'neutral', fontFamily: 'Public Sans, system-ui, sans-serif', flowchart: { useMaxWidth: false }, sequence: { useMaxWidth: false } });
+    // Mermaid measures text, so diagrams inside a closed section render when it first opens.
+    blocks.filter((block) => !block.closest('details.other-views')).forEach(renderDiagram);
+    const other = document.querySelector('details.other-views');
+    if (other) other.addEventListener('toggle', () => other.querySelectorAll('pre.mermaid').forEach(renderDiagram), { once: true });
+  } else if (blocks.length) {
+    blocks.forEach((block) => showSource(block, 'The diagram library did not load, so this shows the diagram source.'));
+  }
+})();
+</script>
+</body>
+</html>
