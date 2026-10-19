@@ -1,6 +1,6 @@
 ---
 name: minimal-senior-code
-description: Use when planning an implementation, writing, modifying, or refactoring code to keep scope minimal, validate at trust boundaries, and handle failures explicitly. Not for review-only tasks; language and framework style come from their own standards.
+description: Use when planning an implementation, writing, modifying, or refactoring code to keep scope minimal, make correctness local and checkable, validate at trust boundaries, and handle failures explicitly. Not for review-only tasks; language and framework style come from their own standards.
 ---
 
 # Minimal Senior Code
@@ -17,9 +17,16 @@ When these rules conflict, prefer:
 
 ## Relationship to coding standards
 
-This skill owns implementation scope, abstraction, trust boundaries, failure behavior, and the tests needed for changed behavior. Language and framework standards own syntax, naming, formatting, and established framework idioms.
+This skill owns implementation scope, abstraction, behavior ownership, trust boundaries, failure behavior, and verification. Language and framework standards own syntax, naming, formatting, and established framework idioms.
 
 A style preference does not by itself justify a new abstraction, dependency, configuration option, defensive branch, or unrelated refactor.
+
+## Make correctness local and checkable
+
+- Identify the invariants relevant to the change from requirements and existing contracts. Distinguish established requirements from assumptions; resolve assumptions that affect correctness before relying on them.
+- Keep each business rule with the module that owns the behavior, so callers can use it without reconstructing rules scattered across the application. Expose behavioral obligations through its interface while keeping implementation details internal.
+- Make consequential states, side effects, ordering requirements, and retry obligations explicit where they affect the change. For external effects, distinguish confirmed failure from an unknown outcome before deciding whether a retry is safe.
+- Prefer executable guarantees through types, constraints, atomic operations, or explicit state transitions over comments and caller discipline. Reuse existing guarantees; add a mechanism only when the required behavior needs it.
 
 ## Keep the implementation direct
 
@@ -59,12 +66,16 @@ Use a database transaction only when operations must commit or roll back as one 
 ## Keep changes focused and test behavior
 
 - Avoid unrelated refactors while changing behavior. Small enabling cleanup is fine when it directly supports the requested change.
+- In legacy code, establish the affected behavior with focused characterization checks where needed. Compare it with requirements; existing behavior is evidence, not automatic acceptance criteria.
+- Strengthen the smallest affected area. Expand scope only when a required guarantee cannot be established locally, and explain that dependency.
 - When a test harness exists, add or update tests for changed behavior and rejected boundary input. For bug fixes, prefer a regression test when practical.
-- Test observable behavior, not private implementation details or internal call structure.
+- Derive behavioral expectations from requirements and contracts independently of the implementation. Check observable outcomes, including relevant failure paths and concurrency or retry scenarios, rather than private implementation details or internal call structure.
 - Never special-case implementation logic only to satisfy known test inputs.
 
 ## Before presenting the plan or code
 
 Check that the solution has no speculative abstraction or configuration, validates untrusted data once at the right boundary, preserves required security/integrity checks, follows project conventions, and contains only tests and code needed for the requested behavior.
+
+For each relevant invariant, identify its enforcing mechanism and verification evidence. In a plan, name the intended checks; for completed changes, report the checks run and any unresolved gaps.
 
 If you intentionally omit something a reviewer would reasonably expect, mention that omission briefly. Otherwise, do not add a ritual caveat.
