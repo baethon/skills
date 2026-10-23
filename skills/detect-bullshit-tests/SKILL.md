@@ -11,6 +11,10 @@ A **bullshit test** looks like coverage but proves nothing. It passes whether or
 
 Your job: scan the target tests, flag every bullshit test with the reason, and end with a results list carrying a suggested action per finding.
 
+## Options
+
+Recognize `--auto` anywhere in the skill arguments; use the remaining arguments to determine scope. With `--auto`, apply the suggested actions, verify, and commit before reporting, without asking for confirmation. Without it, report findings only.
+
 ## Scope
 
 Default target: **test files changed on the current branch** vs the main branch. Get them with `git diff --name-only <main>...HEAD` filtered to test paths. If the user pointed at specific files, directories, or a different range, use that instead.
@@ -31,6 +35,13 @@ Judge each test against these classes. A test is bullshit if it matches one; quo
 
 A test that mixes real assertions with a truism is **not** bullshit — flag only tests whose value rests entirely on the bullshit. Note weak-but-real tests separately as low priority; do not pad the list.
 
+## Apply and commit (`--auto` only)
+
+1. Record the original findings and locations for the report, and inspect existing staged and unstaged work before editing.
+2. Apply each finding's suggested action from the report vocabulary below. Delete, rewrite, replace, merge, or keep according to the recommendation. Read the production code as needed to make rewritten or replacement assertions check real behavior.
+3. Run the relevant formatter and focused tests using the project's existing tooling. Review the final diff and resolve failures introduced by the edits before committing.
+4. Inspect `git status`, `git diff`, and `git log --oneline -10`. Stage and commit only this run's edits, excluding unrelated work even if already staged. Follow the repository's commit style and load `commit-coauthor-footer` before preparing the commit message. If this run produced no changes, skip the commit.
+
 ## Report
 
 List findings most-worthless first. For each:
@@ -43,5 +54,7 @@ List findings most-worthless first. For each:
   - **Rewrite to assert behavior** — the test targets real code but checks the wrong thing; name the behavior it should assert instead.
   - **Replace mock with real assertion** — mock theater where the real output is checkable.
   - **Merge/keep** — weak but real; leave it or fold it into a stronger test.
+
+In `--auto` mode, report the original findings with the action actually taken for each. Include verification results and the commit hash, or explain why verification or the commit could not complete. State when no changes were needed.
 
 End with a one-line count: `N bullshit, M weak-but-real, across K files`. If nothing is bullshit, say so plainly rather than manufacturing findings.
