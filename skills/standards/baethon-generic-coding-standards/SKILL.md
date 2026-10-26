@@ -9,7 +9,7 @@ description: Language-agnostic reference for names, control-flow style, collecti
 
 This skill owns expression-level style. It does not decide feature scope, architecture, abstraction, validation placement, error strategy, or test scope.
 
-When `minimal-senior-code` also applies, that skill owns those implementation decisions. This skill supplies the language-agnostic conventions used to express them.
+When `focused-implementation` also applies, that skill owns those implementation decisions. This skill supplies the language-agnostic conventions used to express them.
 
 During review-only tasks, evaluate only the conventions this skill owns.
 

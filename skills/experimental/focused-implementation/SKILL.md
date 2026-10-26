@@ -1,9 +1,9 @@
 ---
-name: minimal-senior-code
+name: focused-implementation
 description: Use when planning an implementation, writing, modifying, or refactoring code to keep scope minimal, make correctness local and checkable, validate at trust boundaries, and handle failures explicitly. Not for review-only tasks; language and framework style come from their own standards.
 ---
 
-# Minimal Senior Code
+# Focused Implementation
 
 Plan or write the smallest clear implementation that satisfies the task and the current codebase. Do not build for hypothetical future requirements.
 
@@ -24,8 +24,10 @@ A style preference does not by itself justify a new abstraction, dependency, con
 ## Make correctness local and checkable
 
 - Identify the invariants relevant to the change from requirements and existing contracts. Distinguish established requirements from assumptions; resolve assumptions that affect correctness before relying on them.
+- When successive fixes fail the same required check, stop patching and revisit the assumption they share. Identify what the evidence contradicts before choosing another approach.
 - Keep each business rule with the module that owns the behavior, so callers can use it without reconstructing rules scattered across the application. Expose behavioral obligations through its interface while keeping implementation details internal.
 - Make consequential states, side effects, ordering requirements, and retry obligations explicit where they affect the change. For external effects, distinguish confirmed failure from an unknown outcome before deciding whether a retry is safe.
+- Before adding coordination around shared mutable state, check whether each operation can own independent state. When sharing is required, make ownership and concurrent updates safe through the project's existing mechanisms.
 - Prefer executable guarantees through types, constraints, atomic operations, or explicit state transitions over comments and caller discipline. Reuse existing guarantees; add a mechanism only when the required behavior needs it.
 
 ## Keep the implementation direct
@@ -68,7 +70,8 @@ Use a database transaction only when operations must commit or roll back as one 
 - Avoid unrelated refactors while changing behavior. Small enabling cleanup is fine when it directly supports the requested change.
 - In legacy code, establish the affected behavior with focused characterization checks where needed. Compare it with requirements; existing behavior is evidence, not automatic acceptance criteria.
 - Strengthen the smallest affected area. Expand scope only when a required guarantee cannot be established locally, and explain that dependency.
-- When a test harness exists, add or update tests for changed behavior and rejected boundary input. For bug fixes, prefer a regression test when practical.
+- For multi-step changes, work in small increments with a checkable outcome. Verify each increment before building further work on it.
+- When a test harness exists, add or update tests for changed behavior and rejected boundary input. For bug fixes, reproduce the failure when practical and use a regression check that fails for the reported reason. Fix the violated contract rather than merely suppressing the symptom.
 - Derive behavioral expectations from requirements and contracts independently of the implementation. Check observable outcomes, including relevant failure paths and concurrency or retry scenarios, rather than private implementation details or internal call structure.
 - Never special-case implementation logic only to satisfy known test inputs.
 

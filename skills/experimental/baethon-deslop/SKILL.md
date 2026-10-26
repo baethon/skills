@@ -23,7 +23,7 @@ In `--auto` mode, inspect existing staged and unstaged work before editing so th
 
 - Load `baethon-generic-coding-standards` for naming, control flow, collection expressions, and visible side effects.
 - For PHP, load `baethon-php-standards` and its applicable references for PHP and Laravel conventions.
-- Load `minimal-senior-code` for abstraction, validation, failure behavior, and test scope.
+- Load `focused-implementation` for abstraction, validation, failure behavior, and test scope.
 
 Use these references as the source of truth, including their precedence rules.
 

@@ -9,7 +9,7 @@ description: PHP and Laravel reference for syntax, naming, Eloquent, queues, com
 
 This skill owns PHP and Laravel conventions. It does not decide feature scope, architecture, or whether the current behavior needs a new abstraction.
 
-When `minimal-senior-code` also applies, that skill owns those implementation decisions. Do not add a class, layer, or dependency only to match an example in these references.
+When `focused-implementation` also applies, that skill owns those implementation decisions. Do not add a class, layer, or dependency only to match an example in these references.
 
 During review-only tasks, evaluate only the conventions this skill owns.
 
