@@ -26,9 +26,11 @@ A style preference does not by itself justify a new abstraction, dependency, con
 - Identify the invariants relevant to the change from requirements and existing contracts. Distinguish established requirements from assumptions; resolve assumptions that affect correctness before relying on them.
 - When successive fixes fail the same required check, stop patching and revisit the assumption they share. Identify what the evidence contradicts before choosing another approach.
 - Keep each business rule with the module that owns the behavior, so callers can use it without reconstructing rules scattered across the application. Expose behavioral obligations through its interface while keeping implementation details internal.
+- When a module's behavior is complex, absorb that complexity inside it rather than pushing it onto callers through extra parameters, configuration, or required call sequences.
 - Make consequential states, side effects, ordering requirements, and retry obligations explicit where they affect the change. For external effects, distinguish confirmed failure from an unknown outcome before deciding whether a retry is safe.
 - Before adding coordination around shared mutable state, check whether each operation can own independent state. When sharing is required, make ownership and concurrent updates safe through the project's existing mechanisms.
 - Prefer executable guarantees through types, constraints, atomic operations, or explicit state transitions over comments and caller discipline. Reuse existing guarantees; add a mechanism only when the required behavior needs it.
+- Before adding handling for an edge case, check whether the operation's semantics can make it a normal case, such as removing a missing key as a no-op or clamping a range. Do not apply this to genuine failures; those still fail fast.
 
 ## Keep the implementation direct
 
