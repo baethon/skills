@@ -31,8 +31,3 @@ Apply them only to code you create or materially modify.
 - Use `SCREAMING_SNAKE_CASE` for PHP enum cases.
 - Use named arguments for boolean literals.
 - For Laravel code, also apply the Laravel reference.
-
-## Reference files
-
-- [PHP_REFERENCE.md](PHP_REFERENCE.md): PHP-specific rules and examples.
-- [LARAVEL_REFERENCE.md](LARAVEL_REFERENCE.md): Laravel-specific rules and examples.

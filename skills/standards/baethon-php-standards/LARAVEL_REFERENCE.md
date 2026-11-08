@@ -2,7 +2,9 @@
 
 ## Rules
 
-These rules describe Laravel idioms, not required architecture. Follow the project's established pattern. Introduce a scope, Form Request, resource, action, or injected dependency only when the current behavior benefits from that boundary.
+Rules 1–6 describe Laravel idioms, not required architecture. Follow the project's established pattern. Introduce a scope, Form Request, resource, action, or injected dependency only when the current behavior benefits from that boundary.
+
+Rules 7 onward are house conventions. Apply them whenever they are relevant.
 
 ### 1. Prefer collections for collection pipelines
 
@@ -208,8 +210,6 @@ $user = User::find($id);
 $user = User::findOrFail($id);
 ```
 
-**Rationale:** Starting with `::query()` makes it visually clear that a query is being built and maintains consistency with method chaining style.
-
 ### 13. Use `$query` instead of `$q` in query builder callbacks
 
 Always use the full variable name `$query` in query builder callbacks, not `$q`:
@@ -228,8 +228,6 @@ Build::query()
     ->get();
 ```
 
-**Rationale:** This aligns with the generic standard requiring descriptive names. While `$q` is a common shorthand, it reduces readability.
-
 ### 14. Use dedicated `make:*` commands for scaffolding
 
 Always use Laravel's dedicated Artisan `make:*` commands when creating migrations, models, factories, commands, and seeders.
@@ -243,7 +241,7 @@ php artisan make:seeder OrderSeeder
 php artisan make:command ListOrders
 ```
 
-Do not create these files manually. Using dedicated commands ensures consistent file structure, naming conventions, and framework integration.
+Do not create these files manually.
 
 ### 15. Keep `ShouldBeUnique::uniqueId()` focused on unique values
 
@@ -269,9 +267,9 @@ public function uniqueId(): string
 }
 ```
 
-### 16. Use Laravel database assertion helpers for creates and updates
+### 16. Use database assertion helpers for persistence checks
 
-When a unit test verifies that a record was created or updated in the database, use Laravel database assertion helpers such as `assertDatabaseHas()` instead of refreshing the model only to assert persisted scalar properties.
+When a unit test verifies that a record was created, updated, deleted, or soft-deleted, use Laravel database assertion helpers such as `assertDatabaseHas()`, `assertDatabaseMissing()`, and `assertSoftDeleted()` instead of refreshing the model to inspect persisted state.
 
 In Pest, use the function helper. In PHPUnit-style tests, use the test-case assertion method.
 
@@ -280,36 +278,6 @@ In Pest, use the function helper. In PHPUnit-style tests, use the test-case asse
 assertDatabaseHas('users', [
     'id' => $user->id,
     'name' => 'Updated Name',
-]);
-
-// Good in PHPUnit-style tests
-$this->assertDatabaseHas('users', [
-    'id' => $user->id,
-    'name' => 'Updated Name',
-]);
-
-// Avoid
-$user->refresh();
-
-$this->assertSame('Updated Name', $user->name);
-```
-
-**Allowed exceptions:**
-- Checking a complex property that is easier or safer to verify through the refreshed model, such as a value cast to a DTO.
-- Re-using the refreshed entity to verify other behavior in the same test.
-
-**Rationale:** Laravel database assertion helpers make the persistence check explicit and avoid coupling the assertion to model rehydration when the test only needs to confirm database state.
-
-### 17. Use database assertions for deletes
-
-When a unit test verifies that a record was deleted or soft-deleted, use Laravel database assertion helpers such as `assertDatabaseMissing()` and `assertSoftDeleted()` instead of refreshing the model just to inspect persistence state.
-
-In Pest, use the function helper. In PHPUnit-style tests, use the test-case assertion method.
-
-```php
-// Good in Pest
-assertDatabaseMissing('users', [
-    'id' => $user->id,
 ]);
 
 assertSoftDeleted('users', [
@@ -321,15 +289,12 @@ $this->assertDatabaseMissing('users', [
     'id' => $user->id,
 ]);
 
-$this->assertSoftDeleted('users', [
-    'id' => $user->id,
-]);
-
 // Avoid
 $user->refresh();
+
+$this->assertSame('Updated Name', $user->name);
 ```
 
-**Allowed exception:**
+**Allowed exceptions:**
+- Checking a complex property that is easier or safer to verify through the refreshed model, such as a value cast to a DTO.
 - Re-using the refreshed entity to verify other behavior in the same test.
-
-**Rationale:** Laravel database assertion helpers state the persistence expectation directly and keep deletion checks focused on database state.

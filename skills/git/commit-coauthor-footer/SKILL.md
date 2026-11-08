@@ -6,41 +6,15 @@ description: |
 
 # Commit Co-Author Footer
 
-Conditionally add the Agent co-author footer to commit messages.
+Run this check on every commit message, including one with an empty body, after formatting the subject and before committing.
 
-## Mandatory Trigger
-
-Use this skill for every user request that results in `git commit`, after subject formatting and before creating the final commit message.
-
-Do not skip this check, even when the commit body is short.
-
-## Email Check
-
-Before every commit, use the configured git user email:
+Configured git user email:
 
 !`git config --get user.email`
 
-If the email is exactly `agent@nonhuman.work`, do nothing.
+- If the email is exactly `agent@nonhuman.work`, leave the message unchanged.
+- Otherwise, including when the email is missing, end the message with one blank line and this exact footer, unless it is already present:
 
-If the email is missing or different, apply the footer rules below.
+  `Co-Authored-By: Agent <agent@nonhuman.work>`
 
-## Footer
-
-Use exactly:
-
-`Co-Authored-By: Agent <agent@nonhuman.work>`
-
-## Rules
-
-1. Read the email value from the bash context expansion above.
-2. If it is exactly `agent@nonhuman.work`, leave the commit message unchanged.
-3. If it is missing or different, check whether the commit message already contains the exact footer line.
-4. If present, do not add another copy.
-5. If missing, append one blank line and the footer line.
-6. If the commit body is empty, still apply this skill and decide explicitly whether the footer is required by the email check.
-
-## Scope
-
-- This skill only manages the co-author footer.
-- It does not detect commit style.
-- It does not format the subject line.
+This skill only manages the footer. It does not detect commit style or format the subject.
