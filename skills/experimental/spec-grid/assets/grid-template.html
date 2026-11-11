@@ -1,0 +1,281 @@
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column of rule grids (state × actor), each cell a markable rule with its spec source */
+:root {
+  --bg: #f4f5f8; --surface: #ffffff; --fg: #1a2131; --muted: #5b6477; --line: #d8dce5;
+  --accent: #2b52a3;
+  --yes: #1d6f47; --yes-bg: #e3f2ea;
+  --part: #7a5a00; --part-bg: #fbf2d9;
+  --no-bg: #eef0f4;
+  --silent: #a3202a; --silent-bg: #fbe8ea;
+  --ok: #1d6f47; --bad: #b3242e; --ask: #8a5800;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161f; --surface: #1a202c; --fg: #e4e8f0; --muted: #9aa3b5; --line: #2f3747;
+  --accent: #8fb0f0;
+  --yes: #7fd3a6; --yes-bg: #173426;
+  --part: #e8c46a; --part-bg: #3a2f12;
+  --no-bg: #222a37;
+  --silent: #f2959b; --silent-bg: #3d1b20;
+  --ok: #7fd3a6; --bad: #f2959b; --ask: #e8c46a;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #12161f; --surface: #1a202c; --fg: #e4e8f0; --muted: #9aa3b5; --line: #2f3747;
+  --accent: #8fb0f0;
+  --yes: #7fd3a6; --yes-bg: #173426;
+  --part: #e8c46a; --part-bg: #3a2f12;
+  --no-bg: #222a37;
+  --silent: #f2959b; --silent-bg: #3d1b20;
+  --ok: #7fd3a6; --bad: #f2959b; --ask: #e8c46a;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; display: grid; gap: 36px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+h1 { margin: 0; font-size: 26px; font-weight: 600; text-wrap: balance; }
+h2 { margin: 0; font-size: 18px; font-weight: 600; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.muted { color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--muted); align-items: center; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; border: 1px solid var(--line); }
+.sw.yes { background: var(--yes-bg); } .sw.part { background: var(--part-bg); } .sw.no { background: var(--no-bg); }
+.sw.silent { background: repeating-linear-gradient(45deg, var(--silent-bg) 0 4px, var(--surface) 4px 8px); border-color: var(--silent); }
+.sw.derived { background: var(--surface); border: 1.5px dashed var(--muted); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--bg); padding-block: 10px; border-bottom: 1px solid var(--line); }
+.counts { font-family: var(--mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.counts b { font-weight: 500; }
+.counts .c-ok { color: var(--ok); } .counts .c-bad { color: var(--bad); } .counts .c-ask { color: var(--ask); }
+button.act { font: inherit; font-weight: 500; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); cursor: pointer; }
+button.ghost { background: transparent; color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { display: grid; gap: 12px; }
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; }
+th, td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); vertical-align: top; text-align: left; }
+th:last-child, td:last-child { border-right: 0; }
+tr:last-child > * { border-bottom: 0; }
+thead th { font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); padding: 10px 12px; background: var(--bg); }
+tbody th { width: 210px; padding: 12px; font-weight: 600; font-size: 13.5px; }
+tbody th small { display: block; font-weight: 400; color: var(--muted); font-family: var(--mono); font-size: 11.5px; margin-top: 3px; }
+.cell { padding: 10px 12px; position: relative; }
+.k-yes { background: var(--yes-bg); }
+.k-part { background: var(--part-bg); }
+.k-no { background: var(--no-bg); }
+.k-na { color: var(--muted); }
+.k-silent { background: repeating-linear-gradient(45deg, var(--silent-bg) 0 6px, transparent 6px 12px); box-shadow: inset 0 0 0 1.5px var(--silent); }
+.derived { box-shadow: inset 0 0 0 1.5px var(--muted); }
+.derived::after { content: "derived"; position: absolute; top: 8px; right: 10px; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.v { font-weight: 600; padding-right: 52px; }
+.k-yes .v { color: var(--yes); } .k-part .v { color: var(--part); } .k-silent .v { color: var(--silent); }
+.d { margin-top: 3px; font-size: 13px; }
+.src { margin-top: 6px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.mark { display: flex; gap: 4px; margin-top: 8px; }
+.mark button { font: 500 12px var(--mono); width: 28px; height: 24px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; }
+.mark button[aria-pressed="true"][data-m="ok"] { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.mark button[aria-pressed="true"][data-m="bad"] { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.mark button[aria-pressed="true"][data-m="ask"] { background: var(--ask); border-color: var(--ask); color: var(--surface); }
+.m-ok { outline: 2px solid var(--ok); outline-offset: -2px; }
+.m-bad { outline: 2px solid var(--bad); outline-offset: -2px; }
+.m-ask { outline: 2px solid var(--ask); outline-offset: -2px; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border: 1px solid var(--line); border-radius: 8px; background: var(--surface); overflow: hidden; }
+.steps .cell { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+.n { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.gaps { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.gaps li { padding: 12px 14px; border-radius: 8px; border: 1.5px solid var(--silent); background: var(--silent-bg); max-width: 80ch; }
+.gaps b { color: var(--silent); }
+#out { width: 100%; min-height: 160px; font: 12.5px var(--mono); border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--surface); color: var(--fg); box-sizing: border-box; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="heading"></h1>
+    <p class="muted">Each cell is one rule from the spec, with the user story or section it comes from. Mark every cell you agree with, every cell that is wrong, and every cell that was never discussed. Then copy the review and paste it back to the agent.</p>
+    <div class="legend">
+      <span><i class="sw yes"></i>shown / allowed</span>
+      <span><i class="sw part"></i>shown with limits</span>
+      <span><i class="sw no"></i>hidden / refused</span>
+      <span><i class="sw derived"></i>derived: follows from rules, not written as a case</span>
+      <span><i class="sw silent"></i>spec does not say</span>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <span class="counts" id="counts"></span>
+    <button class="act" id="copy" type="button">Copy review as Markdown</button>
+    <button class="act ghost" id="reset" type="button">Clear marks</button>
+  </div>
+
+  <div id="grids" style="display:grid;gap:36px"></div>
+
+  <section id="sequence" hidden>
+    <h2 id="sequence-title"></h2>
+    <p class="muted" id="sequence-note"></p>
+    <div class="steps" id="steps"></div>
+  </section>
+
+  <section id="gaps-section" hidden>
+    <h2>Questions the grid could not answer</h2>
+    <ul class="gaps" id="gaps"></ul>
+  </section>
+
+  <section id="not-covered-section" hidden>
+    <h2>Not covered here</h2>
+    <p class="muted" id="not-covered"></p>
+  </section>
+
+  <section id="export" hidden>
+    <h2>Review</h2>
+    <p class="muted">Copying was blocked. Select the text below and copy it yourself.</p>
+    <textarea id="out" readonly></textarea>
+  </section>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+const STORE_KEY = "spec-grid:" + DATA.title;
+const MARK_LABELS = { ok: "Agree", bad: "Wrong", ask: "Not discussed" };
+const MARK_GLYPHS = { ok: "✓", bad: "✗", ask: "?" };
+const STEPS = DATA.sequence?.steps ?? [];
+let marks = loadMarks();
+
+function loadMarks() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; }
+}
+function saveMarks() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(marks)); } catch {}
+}
+
+function cellHtml(tag, id, cell) {
+  const classes = ["cell", "k-" + cell.k];
+  if (cell.derived) classes.push("derived");
+  if (marks[id]) classes.push("m-" + marks[id]);
+  const buttons = Object.keys(MARK_LABELS)
+    .map(m => `<button type="button" data-m="${m}" aria-label="${MARK_LABELS[m]}" title="${MARK_LABELS[m]}" aria-pressed="${marks[id] === m}">${MARK_GLYPHS[m]}</button>`)
+    .join("");
+  const value = cell.v ?? (cell.k === "silent" ? "Spec does not say" : "");
+  return `<${tag} class="${classes.join(" ")}" data-id="${id}">
+    ${value ? `<div class="v">${value}</div>` : ""}
+    ${cell.d ? `<div class="d">${cell.d}</div>` : ""}
+    ${cell.s ? `<div class="src">${cell.s}</div>` : ""}
+    <div class="mark">${buttons}</div>
+  </${tag}>`;
+}
+
+function render() {
+  document.getElementById("eyebrow").innerHTML = DATA.eyebrow ?? "";
+  document.getElementById("heading").innerHTML = DATA.title;
+  document.getElementById("grids").innerHTML = DATA.grids.map(grid => `
+    <section>
+      <h2>${grid.title}</h2>
+      ${grid.note ? `<p class="muted">${grid.note}</p>` : ""}
+      <div class="scroll"><table>
+        <thead><tr><th>${grid.rowHeader ?? ""}</th>${grid.cols.map(c => `<th>${c}</th>`).join("")}</tr></thead>
+        <tbody>${grid.rows.map((row, r) => `
+          <tr><th>${row.name}${row.sub ? `<small>${row.sub}</small>` : ""}</th>
+          ${row.cells.map((cell, c) => cellHtml("td", `${grid.id}-${r}-${c}`, cell)).join("")}</tr>`).join("")}
+        </tbody>
+      </table></div>
+    </section>`).join("");
+
+  if (DATA.sequence) {
+    document.getElementById("sequence").hidden = false;
+    document.getElementById("sequence-title").innerHTML = DATA.sequence.title;
+    document.getElementById("sequence-note").innerHTML = DATA.sequence.note ?? "";
+    document.getElementById("steps").innerHTML = STEPS
+      .map((step, i) => cellHtml("div", `steps-${i}`, { k: "na", ...step, v: `<span class="n">${i + 1}</span> ${step.v}` }))
+      .join("");
+  }
+  if (DATA.gaps?.length) {
+    document.getElementById("gaps-section").hidden = false;
+    document.getElementById("gaps").innerHTML = DATA.gaps.map(gap => `<li><b>${gap.title}</b> ${gap.text}</li>`).join("");
+  }
+  if (DATA.notCovered) {
+    document.getElementById("not-covered-section").hidden = false;
+    document.getElementById("not-covered").innerHTML = DATA.notCovered;
+  }
+  renderCounts();
+}
+
+function allCells() {
+  const gridCells = DATA.grids.flatMap(grid => grid.rows.flatMap((row, r) => row.cells.map((cell, c) => ({
+    id: `${grid.id}-${r}-${c}`,
+    where: `${grid.title} / ${row.name} / ${grid.cols[c]}`,
+    cell,
+  }))));
+  const stepCells = STEPS.map((step, i) => ({ id: `steps-${i}`, where: `${DATA.sequence.title} / step ${i + 1}`, cell: step }));
+  return [...gridCells, ...stepCells];
+}
+
+function renderCounts() {
+  const total = allCells().length;
+  const count = m => Object.values(marks).filter(v => v === m).length;
+  document.getElementById("counts").innerHTML =
+    `<b>${Object.keys(marks).length}/${total}</b> marked · <b class="c-ok">${count("ok")} agree</b> · <b class="c-bad">${count("bad")} wrong</b> · <b class="c-ask">${count("ask")} not discussed</b>`;
+}
+
+function plain(html) {
+  const el = document.createElement("div");
+  el.innerHTML = html;
+  return el.textContent.trim();
+}
+
+function reviewMarkdown() {
+  const cells = allCells();
+  const section = (m, heading) => {
+    const lines = cells.filter(x => marks[x.id] === m)
+      .map(x => `- **${plain(x.where)}**: ${[x.cell.v, x.cell.d].filter(Boolean).map(plain).join(". ")}${x.cell.s ? ` (${plain(x.cell.s)})` : ""}`);
+    return lines.length ? `### ${heading}\n${lines.join("\n")}` : "";
+  };
+  const agreed = Object.values(marks).filter(v => v === "ok").length;
+  return [
+    `## ${plain(DATA.title)}: spec review`,
+    section("bad", "Wrong"),
+    section("ask", "Not discussed"),
+    `Agreed: ${agreed}. Unmarked: ${cells.length - Object.keys(marks).length}.`,
+  ].filter(Boolean).join("\n\n");
+}
+
+document.addEventListener("click", event => {
+  const button = event.target.closest(".mark button");
+  if (!button) return;
+  const host = button.closest("[data-id]");
+  const id = host.dataset.id;
+  if (marks[id] === button.dataset.m) delete marks[id]; else marks[id] = button.dataset.m;
+  saveMarks();
+  host.classList.remove("m-ok", "m-bad", "m-ask");
+  if (marks[id]) host.classList.add("m-" + marks[id]);
+  host.querySelectorAll(".mark button").forEach(b => b.setAttribute("aria-pressed", String(marks[id] === b.dataset.m)));
+  renderCounts();
+});
+
+document.getElementById("copy").addEventListener("click", () => {
+  const text = reviewMarkdown();
+  const copyButton = document.getElementById("copy");
+  const showFallback = () => {
+    const out = document.getElementById("out");
+    out.value = text;
+    document.getElementById("export").hidden = false;
+    out.select();
+  };
+  if (!navigator.clipboard) return showFallback();
+  navigator.clipboard.writeText(text)
+    .then(() => { copyButton.textContent = "Copied"; setTimeout(() => copyButton.textContent = "Copy review as Markdown", 1500); })
+    .catch(showFallback);
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  marks = {};
+  saveMarks();
+  render();
+});
+
+render();
+</script>
