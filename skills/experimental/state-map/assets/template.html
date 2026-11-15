@@ -1,0 +1,506 @@
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: full-bleed map, cartouche with the road index top-left, detail sheet right (bottom on phones). */
+:root {
+  --sea: #d6e3ea; --sea-line: #8fb0c2; --ink: #2b3138; --muted: #66707a; --paper: #fbfaf7f0; --rule: #d9d6cf;
+  --coast: #5f7d8c; --border: #7a6a5c; --road: #c9772f; --casing: #fbfaf7; --hl: #c23b2a; --foreign: #e4e1da; --shield: #2f5d8a;
+  --c0: #e9dcc0; --c1: #cfdcb8; --c2: #ecc9c3; --c3: #d5cde6; --c4: #f0e1a8; --c5: #bfdcd3; --c6: #f2cfaa; --c7: #c9d3dc;
+  --f-display: "Alegreya Sans SC", "Gill Sans", sans-serif;
+  --f-body: "Alegreya Sans", "Gill Sans", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --sea: #0f1c24; --sea-line: #23404f; --ink: #e6e2da; --muted: #9aa3ab; --paper: #161d22f0; --rule: #2c353c;
+  --coast: #6f93a5; --border: #a89584; --road: #e09550; --casing: #1b2329; --hl: #ff7a63; --foreign: #2a2f33; --shield: #5b8fc4;
+  --c0: #4a4232; --c1: #3a4630; --c2: #4d3533; --c3: #3d3850; --c4: #4f4826; --c5: #2f4842; --c6: #533f2c; --c7: #353f49;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --sea: #0f1c24; --sea-line: #23404f; --ink: #e6e2da; --muted: #9aa3ab; --paper: #161d22f0; --rule: #2c353c;
+  --coast: #6f93a5; --border: #a89584; --road: #e09550; --casing: #1b2329; --hl: #ff7a63; --foreign: #2a2f33; --shield: #5b8fc4;
+  --c0: #4a4232; --c1: #3a4630; --c2: #4d3533; --c3: #3d3850; --c4: #4f4826; --c5: #2f4842; --c6: #533f2c; --c7: #353f49;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--sea); color: var(--ink); font-family: var(--f-body); font-size: 15px; overflow: hidden; }
+#map { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+#map:active { cursor: grabbing; }
+
+.waterline { fill: none; stroke: var(--sea-line); stroke-linejoin: round; }
+.coast { fill: none; stroke: var(--coast); stroke-width: 1.2; stroke-linejoin: round; }
+.border { fill: none; stroke: var(--border); stroke-width: 1.2; stroke-dasharray: 6 3 1 3; }
+.land { stroke-width: .6; stroke-linejoin: round; }
+
+.road-casing { fill: none; stroke: var(--casing); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.road { fill: none; stroke: var(--road); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; }
+.road.proposed, .ferry { stroke-dasharray: 7 5; }
+.ferry { fill: none; stroke: var(--shield); stroke-width: 1.4; opacity: .7; }
+.shield { cursor: pointer; }
+.shield rect { fill: var(--shield); stroke: var(--casing); stroke-width: 1.5; }
+.shield text, .shield-chip { font-family: var(--f-body); font-weight: 700; fill: #fff; text-anchor: middle; }
+
+.city { cursor: pointer; }
+.city circle { fill: var(--casing); stroke: var(--ink); stroke-width: 1.6; }
+.city.proposed circle { stroke: var(--hl); stroke-dasharray: 3 2; }
+.city .dot { fill: var(--ink); stroke: none; }
+.label { font-family: var(--f-body); fill: var(--ink); paint-order: stroke; stroke: var(--casing); stroke-opacity: .85; stroke-linejoin: round; pointer-events: none; }
+.city .label { font-weight: 700; }
+.entry { cursor: pointer; }
+.entry rect { fill: var(--ink); stroke: var(--casing); stroke-width: 1.5; }
+.entry .label { font-style: italic; }
+.external { cursor: pointer; }
+.external .label, .country-label { font-family: var(--f-display); font-weight: 700; text-anchor: middle; pointer-events: none; }
+.country-label { fill: var(--ink); opacity: .45; }
+.external .label { fill: var(--muted); }
+.district circle { fill: var(--ink); }
+.district .label { font-family: var(--f-mono); font-weight: 400; }
+
+.gate { stroke: var(--ink); stroke-linecap: square; cursor: pointer; }
+.gate .bar { stroke-width: 3; }
+.gate .halo { stroke: var(--casing); stroke-width: 6; }
+.sheet .when, .sheet .then { font-size: 12.5px; grid-column: 2; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.sheet .when { color: var(--muted); }
+.sheet .then { font-family: var(--f-mono); }
+.focus .gate, .focus .road, .focus .road-casing, .focus .shield, .focus .ferry, .focus .city, .focus .entry, .focus .external, .focus .district { opacity: .15; }
+.focus .on { opacity: 1 !important; }
+.chevron { fill: none; stroke: var(--casing); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.focus .chevron { opacity: .15; }
+
+.cartouche, .sheet {
+  position: fixed; background: var(--paper); border: 1px solid var(--rule); border-radius: 4px;
+  backdrop-filter: blur(6px); box-shadow: 0 1px 3px #0002; box-sizing: border-box;
+}
+.cartouche {
+  top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
+  width: min(310px, calc(100vw - 32px)); max-height: calc(100% - 24px); overflow: auto; padding: 14px 16px; display: grid; gap: 12px; align-content: start;
+}
+.cartouche h1 { font-family: var(--f-display); font-size: 22px; letter-spacing: .06em; margin: 0; line-height: 1.1; text-wrap: balance; }
+.survey { font-size: 13px; color: var(--muted); margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+details summary { cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+details[open] summary { margin-bottom: 8px; }
+.index { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.pick { all: unset; cursor: pointer; display: flex; gap: 8px; align-items: baseline; font-size: 14px; line-height: 1.3; }
+.pick:hover { color: var(--hl); }
+.pick:focus-visible, .sheet .close:focus-visible { outline: 2px solid var(--hl); outline-offset: 2px; }
+.chip { flex: none; display: inline-block; min-width: 26px; padding: 1px 4px; border-radius: 3px; background: var(--shield); color: #fff; font-weight: 700; font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; }
+.legend { display: grid; gap: 5px; font-size: 13px; margin: 0; padding: 0; list-style: none; }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.legend svg { flex: none; }
+.countries { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; }
+.countries span { display: inline-flex; align-items: center; gap: 5px; }
+.swatch { width: 11px; height: 11px; border: 1px solid var(--border); border-radius: 2px; flex: none; }
+
+.sheet {
+  top: calc(12px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  width: min(360px, calc(100vw - 32px)); max-height: calc(100% - 24px); overflow: auto; padding: 14px 16px;
+}
+.sheet h2 { font-size: 21px; margin: 0 28px 4px 0; overflow-wrap: anywhere; display: flex; gap: 8px; align-items: center; }
+.sheet .meta { font-size: 13px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.sheet p { margin: 8px 0; line-height: 1.45; }
+.sheet h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 0 6px; font-weight: 500; }
+.sheet ol, .sheet ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.sheet ol { counter-reset: stop; }
+.sheet ol > li { counter-increment: stop; display: grid; grid-template-columns: 22px 1fr; gap: 0 6px; }
+.sheet ol > li::before { content: counter(stop); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.sheet .what { font-size: 13.5px; color: var(--muted); grid-column: 2; }
+.sheet code { font-family: var(--f-mono); font-size: 11px; color: var(--muted); overflow-wrap: anywhere; display: block; grid-column: 2; }
+.sheet .close { all: unset; position: absolute; top: 8px; right: 12px; cursor: pointer; font-size: 22px; line-height: 1; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .cartouche { width: calc(100vw - 32px); max-height: 40%; }
+  .sheet { top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); width: auto; max-height: 50%; }
+}
+</style>
+
+<svg id="map" aria-label="Map of the application"></svg>
+
+<aside class="cartouche">
+  <div>
+    <h1 id="title"></h1>
+    <p class="survey" id="survey"></p>
+  </div>
+  <details open>
+    <summary>Roads</summary>
+    <ul class="index" id="road-index"></ul>
+  </details>
+  <details>
+    <summary>Legend</summary>
+    <div style="display:grid;gap:10px">
+      <ul class="legend">
+        <li><svg width="28" height="14"><circle cx="14" cy="7" r="5" fill="var(--casing)" stroke="var(--ink)" stroke-width="1.6"/></svg>City · a domain concept</li>
+        <li><svg width="28" height="14"><line x1="0" y1="2" x2="28" y2="2" stroke="#4e79a7" stroke-width="3"/><line x1="0" y1="7" x2="28" y2="7" stroke="#e15759" stroke-width="3"/><line x1="0" y1="12" x2="28" y2="12" stroke="#59a14f" stroke-width="3"/></svg>Road · a business flow, one lane each</li>
+        <li><svg width="28" height="14"><rect x="9" y="2" width="10" height="10" fill="var(--ink)"/></svg>Border crossing · where work starts</li>
+        <li><svg width="28" height="14"><rect x="2" y="1" width="24" height="12" fill="var(--foreign)" stroke="var(--coast)"/></svg>Foreign land · external system</li>
+        <li><svg width="28" height="14"><line x1="0" y1="7" x2="28" y2="7" stroke="var(--shield)" stroke-width="1.5" stroke-dasharray="7 5"/></svg>Ferry · a call to or from abroad</li>
+        <li><svg width="28" height="14"><line x1="0" y1="7" x2="28" y2="7" stroke="var(--road)" stroke-width="3"/><line x1="14" y1="1" x2="14" y2="13" stroke="var(--ink)" stroke-width="3"/></svg>Gate · the flow waits for a trigger</li>
+        <li><svg width="28" height="14"><line x1="0" y1="7" x2="28" y2="7" stroke="var(--hl)" stroke-width="3" stroke-dasharray="7 5"/></svg>Planned · from a spec</li>
+      </ul>
+      <div class="countries" id="countries"></div>
+      <p class="survey">Zoom into a city to see its districts (classes).</p>
+    </div>
+  </details>
+</aside>
+
+<aside class="sheet" id="sheet" hidden></aside>
+
+<script id="map-data" type="application/json">__MAP_DATA__</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const data = JSON.parse(document.getElementById('map-data').textContent);
+const rand = d3.randomLcg(29029);
+const palette = d3.schemeTableau10.concat(d3.schemeDark2);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+const basename = p => p.split('/').pop().replace(/\.\w+$/, '');
+
+const countries = data.countries.map((c, i) => ({ ...c, color: `var(--c${i % 8})` }));
+const countryById = new Map(countries.map(c => [c.id, c]));
+const cities = data.cities.map(c => ({ ...c, type: 'city', status: c.status ?? 'existing', districts: c.districts ?? [] }));
+const cityById = new Map(cities.map(c => [c.id, c]));
+const roads = data.roads.map((r, i) => ({
+  ...r, shield: `A${i + 1}`, color: palette[i % palette.length], status: r.status ?? 'existing', externals: r.externals ?? [],
+  stops: r.stops.filter(s => cityById.has(s.city)),
+}));
+const entries = data.entries.map(e => ({ ...e, type: 'entry', roads: roads.filter(r => r.entry === e.id) }));
+const entryById = new Map(entries.map(e => [e.id, e]));
+const externals = data.externals.map(x => ({ ...x, type: 'external', roads: roads.filter(r => r.externals.includes(x.id)) }));
+const externalById = new Map(externals.map(x => [x.id, x]));
+cities.forEach(c => c.roads = roads.filter(r => r.stops.some(s => s.city === c.id)));
+entries.forEach(e => e.country = e.roads[0] ? cityById.get(e.roads[0].stops[0]?.city)?.country : null);
+
+// Layout: one simulation. Cities cluster by country, crossings sit on the shore, foreign lands lie offshore.
+const cityRadius = c => 5 + Math.sqrt(c.roads.length) * 2.5;
+const spread = 70 * Math.sqrt(cities.length);
+countries.forEach((c, i) => {
+  const a = (i / countries.length) * 2 * Math.PI;
+  c.ax = Math.cos(a) * spread * .5;
+  c.ay = Math.sin(a) * spread * .5;
+});
+const links = [];
+roads.forEach(r => {
+  const path = [r.entry && entryById.get(r.entry), ...r.stops.map(s => cityById.get(s.city))].filter(Boolean);
+  d3.pairs(path).forEach(([a, b]) => a !== b && links.push({ source: a, target: b, kind: 'road' }));
+  r.externals.forEach(x => externalById.has(x) && path[1] && links.push({ source: externalById.get(x), target: path[1] ?? path[0], kind: 'ferry' }));
+});
+const nodes = [...cities, ...entries, ...externals];
+nodes.forEach(n => { n.x = (rand() - .5) * spread; n.y = (rand() - .5) * spread; });
+const sim = d3.forceSimulation(nodes)
+  .randomSource(rand)
+  .force('link', d3.forceLink(links).distance(l => l.kind === 'ferry' ? 160 : 80).strength(l => l.kind === 'ferry' ? .05 : .25))
+  .force('charge', d3.forceManyBody().strength(n => n.type === 'external' ? -900 : -500))
+  .force('collide', d3.forceCollide(n => n.type === 'city' ? 46 : 34))
+  .force('anchorX', d3.forceX(n => countryById.get(n.country)?.ax ?? 0).strength(n => n.type === 'city' ? .12 : 0))
+  .force('anchorY', d3.forceY(n => countryById.get(n.country)?.ay ?? 0).strength(n => n.type === 'city' ? .12 : 0))
+  .force('shore', d3.forceRadial(spread * .9).strength(n => n.type === 'entry' ? .25 : 0))
+  .force('abroad', d3.forceRadial(spread * 1.35).strength(n => n.type === 'external' ? .4 : 0))
+  .stop();
+sim.tick(500);
+
+// Terrain from a jittered grid: each point takes the land of the nearest node within reach, else sea.
+const SPACING = 11;
+const reach = n => n.type === 'city' ? 78 : n.type === 'entry' ? 40 : 58;
+const landOf = n => n.type === 'external' ? `abroad:${n.id}` : n.country;
+const [x0, x1] = d3.extent(nodes, n => n.x), [y0, y1] = d3.extent(nodes, n => n.y);
+const bounds = [x0 - 140, y0 - 140, x1 + 140, y1 + 140];
+const nodeDelaunay = d3.Delaunay.from(nodes, n => n.x, n => n.y);
+const terrain = nodes.map(n => ({ x: n.x, y: n.y, land: landOf(n) }));
+for (let gx = bounds[0]; gx <= bounds[2]; gx += SPACING) {
+  for (let gy = bounds[1]; gy <= bounds[3]; gy += SPACING) {
+    const x = gx + (rand() - .5) * SPACING * .8, y = gy + (rand() - .5) * SPACING * .8;
+    const n = nodes[nodeDelaunay.find(x, y)];
+    terrain.push({ x, y, land: Math.hypot(n.x - x, n.y - y) < reach(n) ? landOf(n) : null });
+  }
+}
+const delaunay = d3.Delaunay.from(terrain, p => p.x, p => p.y);
+const voronoi = delaunay.voronoi(bounds);
+const landPaths = new Map();
+terrain.forEach((p, i) => {
+  const poly = p.land && voronoi.cellPolygon(i);
+  if (poly) landPaths.set(p.land, (landPaths.get(p.land) ?? '') + 'M' + poly.join('L') + 'Z');
+});
+let coastPath = '', borderPath = '';
+const { triangles, halfedges } = delaunay, centers = voronoi.circumcenters;
+for (let e = 0; e < halfedges.length; e++) {
+  const twin = halfedges[e];
+  if (twin < e) continue;
+  const a = terrain[triangles[e]].land, b = terrain[triangles[e % 3 === 2 ? e - 2 : e + 1]].land;
+  if (a === b) continue;
+  const t1 = Math.floor(e / 3), t2 = Math.floor(twin / 3);
+  const seg = `M${centers[2 * t1]},${centers[2 * t1 + 1]}L${centers[2 * t2]},${centers[2 * t2 + 1]}`;
+  if (a && b) borderPath += seg; else coastPath += seg;
+}
+
+// Drawing
+const svg = d3.select('#map');
+const world = svg.append('g');
+[[18, .12], [10, .2], [4, .3]].forEach(([w, o]) =>
+  world.append('path').attr('class', 'waterline').attr('d', coastPath).attr('stroke-width', w).attr('opacity', o).attr('vector-effect', 'non-scaling-stroke'));
+landPaths.forEach((d, land) => {
+  const fill = land.startsWith('abroad:') ? 'var(--foreign)' : countryById.get(land)?.color ?? 'var(--foreign)';
+  world.append('path').attr('class', 'land').attr('d', d).attr('fill', fill).attr('stroke', fill);
+});
+world.append('path').attr('class', 'coast').attr('d', coastPath).attr('vector-effect', 'non-scaling-stroke');
+world.append('path').attr('class', 'border').attr('d', borderPath).attr('vector-effect', 'non-scaling-stroke');
+
+const countryLabels = world.append('g').selectAll('text').data(countries.filter(c => cities.some(x => x.country === c.id))).join('text')
+  .attr('class', 'country-label').attr('letter-spacing', '.2em')
+  .attr('x', c => d3.mean(cities.filter(x => x.country === c.id), x => x.x))
+  .attr('y', c => d3.min(cities.filter(x => x.country === c.id), x => x.y) - 34)
+  .text(c => c.name);
+
+const ferries = world.append('g').selectAll('path').data(links.filter(l => l.kind === 'ferry')).join('path')
+  .attr('class', 'ferry').attr('vector-effect', 'non-scaling-stroke')
+  .attr('d', l => `M${l.source.x},${l.source.y}Q${(l.source.x + l.target.x) / 2 + 30},${(l.source.y + l.target.y) / 2 - 30} ${l.target.x},${l.target.y}`);
+
+// Lanes: every road gets its own lane on each segment it shares, so parallel roads never sit on top of each other.
+const LANE = 5;
+roads.forEach(r => {
+  r.pts = [r.entry && entryById.get(r.entry), ...r.stops.map(s => cityById.get(s.city))]
+    .filter(Boolean).filter((p, i, arr) => p !== arr[i - 1]);
+});
+const segments = new Map();
+roads.forEach(r => d3.pairs(r.pts).forEach(([p, q]) => {
+  const [a, b] = [p, q].sort((x, y) => d3.ascending(x.id, y.id));
+  const key = `${a.id}|${b.id}`;
+  const seg = segments.get(key) ?? { a, b, roads: [], runs: [] };
+  if (!seg.roads.includes(r)) seg.roads.push(r);
+  seg.runs.push({ road: r, forward: p === a });
+  segments.set(key, seg);
+}));
+const tracks = [...segments.values()].flatMap(s => s.roads.map((r, i) => ({
+  road: r, seg: s, lane: i - (s.roads.length - 1) / 2,
+  directions: [...new Set(s.runs.filter(run => run.road === r).map(run => run.forward))],
+})));
+const bundle = n => d3.max([...segments.values()].filter(s => s.a === n || s.b === n), s => s.roads.length) ?? 1;
+// Lane offsets are in screen pixels, so geometry is recomputed on every zoom.
+function trackEnds(t, k) {
+  const { a, b } = t.seg, dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+  const o = t.lane * LANE / k, nx = -dy / len * o, ny = dx / len * o;
+  return { x1: a.x + nx, y1: a.y + ny, x2: b.x + nx, y2: b.y + ny, len, ux: dx / len, uy: dy / len };
+}
+const roadG = world.append('g');
+const casings = roadG.selectAll('.road-casing').data(tracks).join('line')
+  .attr('class', 'road-casing').attr('vector-effect', 'non-scaling-stroke');
+const roadSel = roadG.selectAll('.road').data(tracks).join('line')
+  .attr('class', t => `road ${t.road.status}`).style('stroke', t => t.road.color).attr('vector-effect', 'non-scaling-stroke')
+  .on('click', (event, t) => { event.stopPropagation(); select(t.road); });
+// Chevrons show travel direction; a road that runs both ways over a segment gets one each way.
+const chevronSel = roadG.selectAll('.chevron').data(tracks.flatMap(t => t.directions.map(forward => ({ t, forward })))).join('path')
+  .attr('class', 'chevron');
+const districtSel = world.append('g').selectAll('g').data(cities.flatMap(c => c.districts.map((path, i) => {
+  const a = (i / c.districts.length) * 2 * Math.PI - Math.PI / 2;
+  return { city: c, path, a, x: c.x + Math.cos(a) * (cityRadius(c) + 16), y: c.y + Math.sin(a) * (cityRadius(c) + 16) };
+}))).join('g').attr('class', 'district').attr('display', 'none')
+  .attr('transform', d => `translate(${d.x},${d.y})`);
+districtSel.append('circle').attr('r', 1.6);
+const districtLabels = districtSel.append('text').attr('class', 'label').text(d => basename(d.path))
+  .attr('text-anchor', d => Math.cos(d.a) < -.2 ? 'end' : Math.cos(d.a) > .2 ? 'start' : 'middle')
+  .attr('dy', '.35em');
+
+const externalSel = world.append('g').selectAll('g').data(externals).join('g')
+  .attr('class', 'external').attr('transform', x => `translate(${x.x},${x.y})`)
+  .on('click', (event, x) => { event.stopPropagation(); select(x); });
+const externalLabels = externalSel.append('text').attr('class', 'label').attr('letter-spacing', '.12em').attr('dy', '.35em').text(x => x.name);
+
+const entrySel = world.append('g').selectAll('g').data(entries).join('g')
+  .attr('class', 'entry').attr('transform', e => `translate(${e.x},${e.y})`)
+  .on('click', (event, e) => { event.stopPropagation(); select(e); });
+entrySel.append('rect').attr('x', -5).attr('y', -5).attr('width', 10).attr('height', 10).attr('vector-effect', 'non-scaling-stroke');
+const entryLabels = entrySel.append('text').attr('class', 'label').attr('dy', '.35em').text(e => e.name);
+
+const citySel = world.append('g').selectAll('g').data(cities).join('g')
+  .attr('class', c => `city ${c.status}`).attr('transform', c => `translate(${c.x},${c.y})`)
+  .on('click', (event, c) => { event.stopPropagation(); select(c); });
+citySel.append('circle').attr('r', cityRadius).attr('vector-effect', 'non-scaling-stroke');
+citySel.append('circle').attr('class', 'dot').attr('r', c => cityRadius(c) * .35);
+const cityLabels = citySel.append('text').attr('class', 'label').attr('dy', '.35em').text(c => c.name);
+
+// Shields sit midway along each road's longest segment.
+const shieldSel = roadG.selectAll('.shield').data(roads.filter(r => r.pts.length > 1)).join('g').attr('class', 'shield')
+  .on('click', (event, r) => { event.stopPropagation(); select(r); });
+shieldSel.append('rect').attr('rx', 3).attr('vector-effect', 'non-scaling-stroke').style('fill', r => r.color);
+shieldSel.append('text').attr('dy', '.35em').text(r => r.shield);
+roads.forEach(r => r.shieldTrack = d3.greatest(tracks.filter(t => t.road === r), t => Math.hypot(t.seg.b.x - t.seg.a.x, t.seg.b.y - t.seg.a.y)));
+
+// Gates: a stop with a trigger waits for it, so a bar crosses its lane just before that city.
+const gates = roads.flatMap(r => {
+  let j = 0;
+  return r.stops.flatMap(s => {
+    const city = cityById.get(s.city);
+    if (r.pts[j + 1] === city) j++;
+    if (!s.trigger?.length) return [];
+    const prev = r.pts[Math.max(0, j - 1)];
+    const track = prev === city ? null : tracks.find(t => t.road === r && [t.seg.a, t.seg.b].includes(prev) && [t.seg.a, t.seg.b].includes(city));
+    return [{ road: r, stop: s, city, track }];
+  });
+});
+const gateSel = roadG.selectAll('.gate').data(gates).join('g').attr('class', 'gate')
+  .on('click', (event, g) => { event.stopPropagation(); select(g.road); });
+gateSel.append('title').text(g => g.stop.trigger.map(triggerText).join('; '));
+gateSel.append('line').attr('class', 'halo').attr('vector-effect', 'non-scaling-stroke');
+gateSel.append('line').attr('class', 'bar').attr('vector-effect', 'non-scaling-stroke');
+const stationRadius = (c, k) => Math.max(cityRadius(c), (bundle(c) * LANE / 2 + 3) / k);
+
+function layoutLanes(k) {
+  const ends = new Map(tracks.map(t => [t, trackEnds(t, k)]));
+  [casings, roadSel].forEach(sel => sel.attr('x1', t => ends.get(t).x1).attr('y1', t => ends.get(t).y1).attr('x2', t => ends.get(t).x2).attr('y2', t => ends.get(t).y2));
+  chevronSel.attr('d', `M${-2 / k},${-2.5 / k}L${1 / k},0L${-2 / k},${2.5 / k}`).attr('transform', ({ t, forward }) => {
+    const e = ends.get(t), at = t.directions.length > 1 ? (forward ? .3 : .7) : .3;
+    const angle = Math.atan2(e.uy, e.ux) * 180 / Math.PI + (forward ? 0 : 180);
+    return `translate(${e.x1 + (e.x2 - e.x1) * at},${e.y1 + (e.y2 - e.y1) * at}) rotate(${angle})`;
+  });
+  shieldSel.attr('transform', r => {
+    const e = ends.get(r.shieldTrack);
+    return `translate(${(e.x1 + e.x2) / 2},${(e.y1 + e.y2) / 2})`;
+  });
+  gateSel.attr('display', g => g.track ? null : 'none').filter(g => g.track).attr('transform', g => {
+    const e = ends.get(g.track), atB = g.city === g.track.seg.b;
+    const d = stationRadius(g.city, k) + 8 / k;
+    const [x, y] = atB ? [e.x2 - e.ux * d, e.y2 - e.uy * d] : [e.x1 + e.ux * d, e.y1 + e.uy * d];
+    return `translate(${x},${y}) rotate(${Math.atan2(e.uy, e.ux) * 180 / Math.PI})`;
+  });
+  citySel.select('circle').attr('r', c => stationRadius(c, k));
+}
+
+// Zoom: labels keep a constant screen size; districts appear at street level.
+const zoom = d3.zoom().scaleExtent([.2, 8]).on('zoom', ({ transform: t }) => {
+  world.attr('transform', t);
+  const px = v => v / t.k;
+  cityLabels.attr('font-size', px(15)).attr('stroke-width', px(4)).attr('x', c => stationRadius(c, t.k) + px(5));
+  entryLabels.attr('font-size', px(13)).attr('stroke-width', px(3)).attr('x', px(9));
+  externalLabels.attr('font-size', px(15)).attr('stroke-width', 0);
+  countryLabels.attr('font-size', px(Math.min(30, 22 * Math.sqrt(t.k)))).attr('opacity', Math.max(0, .5 - (t.k - 1.8) * .3));
+  layoutLanes(t.k);
+  shieldSel.select('rect').attr('x', px(-14)).attr('y', px(-8)).attr('width', px(28)).attr('height', px(16));
+  shieldSel.select('text').attr('font-size', px(11));
+  gateSel.selectAll('line').attr('x1', 0).attr('x2', 0).attr('y1', px(-7)).attr('y2', px(7));
+  districtSel.attr('display', t.k >= 2.2 ? null : 'none');
+  districtLabels.attr('font-size', px(10.5)).attr('stroke-width', px(3)).attr('x', d => Math.cos(d.a) * px(5));
+  districtSel.select('circle').attr('r', px(2));
+});
+svg.call(zoom).on('dblclick.zoom', null);
+svg.on('click', () => select(null));
+
+function fitAll() {
+  const { width, height } = svg.node().getBoundingClientRect();
+  const w = x1 - x0 + 220, h = y1 - y0 + 160, k = Math.min(width / w, height / h);
+  svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2));
+}
+function flyTo(n, k = 2.6) {
+  const { width, height } = svg.node().getBoundingClientRect();
+  svg.transition().duration(matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600)
+     .call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2).scale(k).translate(-n.x, -n.y));
+}
+
+// Selection
+let selected = null;
+function select(item) {
+  selected = item;
+  svg.classed('focus', !!item);
+  const onRoads = !item ? [] : item.stops ? [item] : item.roads;
+  const onNodes = new Set(onRoads.flatMap(r => [entryById.get(r.entry), ...r.stops.map(s => cityById.get(s.city)), ...r.externals.map(x => externalById.get(x))]));
+  if (item) onNodes.add(item);
+  roadSel.classed('on', t => onRoads.includes(t.road));
+  casings.classed('on', t => onRoads.includes(t.road));
+  shieldSel.classed('on', r => onRoads.includes(r));
+  gateSel.classed('on', g => onRoads.includes(g.road));
+  chevronSel.classed('on', ({ t }) => onRoads.includes(t.road));
+  ferries.classed('on', l => onRoads.some(r => r.externals.includes(l.source.id) && onNodes.has(l.target)));
+  citySel.classed('on', c => onNodes.has(c));
+  entrySel.classed('on', e => onNodes.has(e));
+  externalSel.classed('on', x => onNodes.has(x));
+  districtSel.classed('on', d => d.city === item);
+  renderSheet(item);
+}
+
+const roadButton = r => `<button class="pick" data-road="${esc(r.id)}"><span class="chip" style="background:${r.color}">${r.shield}</span><span>${esc(r.name)}</span></button>`;
+const roadList = list => list.length ? `<ul>${list.map(r => `<li>${roadButton(r)}</li>`).join('')}</ul>` : '<p class="survey">None</p>';
+const nodeButton = n => `<button class="pick" data-node="${n.type}:${esc(n.id)}">${n.type === 'city' ? `<span class="swatch" style="background:${countryById.get(n.country)?.color}"></span>` : ''}${esc(n.name)}</button>`;
+
+// Junctions: a policy or schedule on one road reacts to an event raised on another.
+const otherRoads = (road, test) => roads.filter(r => r !== road && r.stops.some(test));
+const raisedBy = (event, road) => otherRoads(road, s => s.event === event);
+const roadsReacting = (event, road) => {
+  const list = otherRoads(road, s => (s.trigger ?? []).some(t => t.on === event || t.scans === event));
+  return list.length ? ` <span class="when">picked up by</span>${list.map(roadButton).join('')}` : '';
+};
+function suffix(t) {
+  return [t.queued && 'queued', t.delay && `after ${t.delay}`].filter(Boolean).map(x => `, ${x}`).join('');
+}
+function triggerText(t) {
+  return {
+    command: () => `Started at ${entryById.get(t.from)?.name ?? t.from}`,
+    callback: () => `Webhook ${t.name} from ${externalById.get(t.from)?.name ?? t.from}`,
+    policy: () => `On ${t.on}`,
+    schedule: () => `Scheduled ${t.command} every ${t.every}${t.scans ? `, picks up ${t.scans}` : ''}`,
+    queued: () => 'Queued job',
+  }[t.kind]?.() + suffix(t);
+}
+function triggerHtml(t, road) {
+  const from = raisedBy(t.on ?? t.scans, road);
+  return esc(triggerText(t)) + (from.length ? ` <span>from</span>${from.map(roadButton).join('')}` : '');
+}
+
+function renderSheet(item) {
+  const sheet = document.getElementById('sheet');
+  sheet.hidden = !item;
+  if (!item) return;
+  let body = '';
+  if (item.stops) {
+    const entry = entryById.get(item.entry);
+    body = `
+      <h2><span class="chip" style="background:${item.color}">${item.shield}</span>${esc(item.name)}</h2>
+      <div class="meta">${item.status}${entry ? ` · starts at ${nodeButton(entry)}` : ''}</div>
+      <p>${esc(item.summary)}</p>
+      ${item.externals.length ? `<div class="meta">Abroad: ${item.externals.map(x => externalById.get(x)).filter(Boolean).map(nodeButton).join(', ')}</div>` : ''}
+      <h3>Itinerary</h3>
+      <ol>${item.stops.map(s => `<li>${nodeButton(cityById.get(s.city))}${(s.trigger ?? []).map(t => `<span class="when">⏸ ${triggerHtml(t, item)}</span>`).join('')}<span class="what">${esc(s.what)}</span>${s.event ? `<span class="then">→ ${esc(s.event)}${roadsReacting(s.event, item)}</span>` : ''}${(s.classes ?? []).map(p => `<code>${esc(p)}</code>`).join('')}</li>`).join('')}</ol>`;
+  } else if (item.type === 'city') {
+    const country = countryById.get(item.country);
+    body = `
+      <h2>${esc(item.name)}</h2>
+      <div class="meta"><span class="swatch" style="background:${country?.color}"></span>${esc(country?.name)} · ${item.status}</div>
+      <p>${esc(item.summary)}</p>
+      <h3>Roads through here</h3>${roadList(item.roads)}
+      <h3>Districts</h3>${item.districts.length ? `<ul>${item.districts.map(p => `<li><code>${esc(p)}</code></li>`).join('')}</ul>` : '<p class="survey">None listed</p>'}`;
+  } else {
+    body = `
+      <h2>${esc(item.name)}</h2>
+      <div class="meta">${item.type === 'entry' ? `Border crossing · ${esc(item.kind)}` : `Foreign land · ${esc(item.direction)}`}</div>
+      <p>${esc(item.summary)}</p>
+      <h3>${item.type === 'entry' ? 'Roads starting here' : 'Roads trading with it'}</h3>${roadList(item.roads)}
+      ${(item.evidence ?? []).length ? `<h3>Evidence</h3><ul>${item.evidence.map(p => `<li><code>${esc(p)}</code></li>`).join('')}</ul>` : ''}`;
+  }
+  sheet.innerHTML = `<button class="close" aria-label="Close">×</button>${body}`;
+  sheet.querySelector('.close').onclick = () => select(null);
+  wirePicks(sheet);
+}
+
+function wirePicks(scope) {
+  scope.querySelectorAll('[data-road]').forEach(b => b.onclick = () => {
+    const r = roads.find(x => x.id === b.dataset.road);
+    select(r);
+  });
+  scope.querySelectorAll('[data-node]').forEach(b => b.onclick = () => {
+    const [type, ...rest] = b.dataset.node.split(':');
+    const id = rest.join(':');
+    const n = { city: cityById, entry: entryById, external: externalById }[type].get(id);
+    select(n);
+    flyTo(n);
+  });
+}
+
+// Cartouche
+document.getElementById('title').textContent = data.title;
+document.getElementById('survey').textContent =
+  `${roads.length} roads · ${cities.length} cities · ${countries.length} countries · ${entries.length} crossings · ${externals.length} foreign lands`;
+document.getElementById('road-index').innerHTML = roads.map(r => `<li>${roadButton(r)}</li>`).join('');
+document.getElementById('countries').innerHTML = countries.map(c =>
+  `<span><span class="swatch" style="background:${c.color}"></span>${esc(c.name)}</span>`).join('') +
+  `<span><span class="swatch" style="background:var(--foreign)"></span>Abroad</span>`;
+wirePicks(document.querySelector('.cartouche'));
+
+fitAll();
+addEventListener('resize', fitAll);
+</script>
