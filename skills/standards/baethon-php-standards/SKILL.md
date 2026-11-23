@@ -28,6 +28,6 @@ Apply them only to code you create or materially modify.
 ## Core checklist
 
 - Use explicit type hints in typed PHP code.
-- Use `SCREAMING_SNAKE_CASE` for PHP enum cases.
+- Use PascalCase for PHP enum cases, unless the project's existing enums use `SCREAMING_SNAKE_CASE`.
 - Use named arguments for boolean literals.
 - For Laravel code, also apply the Laravel reference.

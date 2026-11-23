@@ -2,20 +2,21 @@
 
 ## Rules
 
-### 1. Enum cases in SCREAMING_SNAKE_CASE
+### 1. Enum cases in PascalCase
 
-PHP Enum cases must use uppercase snake_case:
+PHP enum cases use PascalCase, following PER Coding Style:
 
 ```php
 // Good
-SyncJobStatus::ACTIVE
-SyncJobStatus::PENDING_ACTIVATION
-
-// Bad
 SyncJobStatus::Active
 SyncJobStatus::PendingActivation
+
+// Bad
 SyncJobStatus::Pending_Activation
 ```
+
+Use `SCREAMING_SNAKE_CASE` only when the project's existing enums already use
+it, such as `SyncJobStatus::PENDING_ACTIVATION`.
 
 ### 2. Use named arguments for boolean values
 
