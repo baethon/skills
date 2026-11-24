@@ -1,6 +1,6 @@
 ---
 name: write-issue
-description: Write a GitHub issue that a cold reader understands without this session. Use when filing an issue from session work, such as audit findings, review comments, or a bug found mid-task. When another skill defines the issue format, such as `to-tickets` or `to-spec`, follow that skill instead.
+description: Write an issue that a cold reader understands without this session. Use when filing an issue from session work, such as audit findings, review comments, or a bug found mid-task. When another skill defines the issue format, such as `to-tickets` or `to-spec`, follow that skill instead.
 ---
 
 # Write issue
@@ -9,15 +9,17 @@ The reader is a teammate who was not in this session and opens the issue three w
 
 ## Steps
 
-1. **Gather.** For each issue, collect what the cold reader needs that exists only in this session, such as an audit excerpt, command output, or the reasoning behind a recommendation. Save it as `<n>.source.md` in the scratchpad. Record the commit SHA with `git rev-parse HEAD`. Done when every claim you plan to make traces to the repo at that SHA or to a source file.
+1. **Gather.** For each issue, collect what the cold reader needs that exists only in this session, such as an audit excerpt, command output, or the reasoning behind a recommendation. When there is any, save it as `<n>.source.md` in the scratchpad. Record the commit SHA with `git rev-parse HEAD` when `git branch -r --contains HEAD` lists a remote branch; otherwise record no SHA. Done when every claim you plan to make traces to the repo or to a source file.
 2. **Draft** each issue as `<n>.md` in the scratchpad, in the format below.
-3. **Cold read.** Dispatch one subagent for the whole batch with the prompt below and the draft and source paths. Done when it reports no gaps for every draft.
-4. **Fix** each draft with gaps and run the cold read again on those drafts only.
-5. **File.** Create each issue. When it has a source file, post that file as the issue's first comment. Done when every issue is filed and every source file is posted.
+3. **Cold read.** Dispatch a fresh subagent (not a fork) for the whole batch with the prompt below and the draft and source paths. Done when it reports no gaps for every draft and its two sentences match the problem you meant.
+4. **Fix** each draft that failed and run the cold read again on those drafts only, with a new fresh subagent. After two fix rounds, show the remaining gaps to the user and ask how to proceed.
+5. **File.** File blockers before the issues they block. Create each issue with its `Title:` line as the title and the rest as the body, and link each dependent issue to its blocker with the tracker's blocked-by relation. When it has a source file, post that file as the issue's first comment. Done when every issue is filed, linked, and every source file is posted.
 
 ## Format
 
 ```markdown
+Title: <title>
+
 ## Problem
 
 ## Why it matters
@@ -31,17 +33,20 @@ The reader is a teammate who was not in this session and opens the issue three w
 Commit: <sha>
 ```
 
+Drop the `Commit:` line when Gather recorded no SHA.
+
 The part above `## Details` is for a human deciding whether and when to do the work:
 
+- **Title** names what is wrong in the repo's terms, in under 70 characters, such as "`write-issue` format has no title line".
 - **Problem** says what is wrong and how someone would notice it, such as a failing command, a user-visible bug, or a confusing API.
 - **Why it matters** says what happens if nobody fixes it.
 - **Recommendation** says fix, defer, or drop. Add the blast radius (what the change touches) and whether it is a one-way or two-way door (hard or easy to undo). Both are quick estimates from what you already know.
 - Write plain English: short sentences, active voice, one idea per sentence.
 - Use one term per concept. Take the name the repo uses and keep it.
 - Keep it short. Cut anything the reader does not need to decide.
-- Every reference points at something the cold reader can open: a file, a URL, an issue number, or the source comment. Name the dependency explicitly, such as "Blocked by #312".
+- Every reference points at something the cold reader can open: a file, a URL, an issue number, or the source comment. Name the dependency explicitly, such as "Blocked by #312", or by draft path when the blocker is in this batch.
 
-The `## Details` section is for the agent doing the work. It may be dense: file:line references at the commit, exact symbol and rule names, commands that verify the fix, and a "Done when" checklist.
+The `## Details` section is for the agent doing the work. It may be dense: file:line references at the commit (symbol names alone when there is no commit), exact symbol and rule names, commands that verify the fix, and a "Done when" checklist.
 
 ## Cold-read prompt
 
@@ -50,7 +55,7 @@ You are a developer on this repository. You have never seen these issue drafts o
 
 For each draft:
 1. Explain in two sentences what the problem is and why it matters.
-2. List every reference or claim you could not follow or verify from the draft, its source file, and the repository.
+2. List every reference or claim you could not follow or verify from the draft, its source file, and the repository. A dependency named by another draft's path in this batch counts as resolved.
 
 Reply with, per draft: the path, your two sentences, and the gap list, or "no gaps".
 ```
