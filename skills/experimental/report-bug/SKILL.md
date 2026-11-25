@@ -1,6 +1,6 @@
 ---
 name: report-bug
-description: Write a bug report that a cold reader understands without this session. Use when filing a defect found in session work, such as an audit finding, a review comment, or a bug found mid-task.
+description: Turn findings into issues a cold reader understands without this session. Use when posting, filing, or opening issues or tickets for audit findings, review comments, or a bug found mid-task.
 ---
 
 # Report bug
