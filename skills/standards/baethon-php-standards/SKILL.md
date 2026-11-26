@@ -1,33 +1,35 @@
 ---
 name: baethon-php-standards
-description: PHP and Laravel reference for syntax, naming, Eloquent, queues, commands, validation, and test conventions. Use when writing, modifying, planning, or reviewing PHP code. It governs PHP and Laravel conventions only.
+description: PHP and Laravel conventions covering style precedence, PER/PSR, Eloquent queries, queues, commands, and tests. Use when writing, modifying, planning, or reviewing PHP code.
 ---
 
 # PHP standards
 
 ## Scope
 
-This skill owns PHP and Laravel conventions. It does not decide feature scope, architecture, or whether the current behavior needs a new abstraction.
-
-When `focused-implementation` also applies, that skill owns those implementation decisions. Do not add a class, layer, or dependency only to match an example in these references.
+This skill owns PHP and Laravel conventions. `baethon-generic-coding-standards` owns control flow, side effects, and naming. `focused-implementation` owns scope and abstraction.
 
 During review-only tasks, evaluate only the conventions this skill owns.
 
-Use [PHP_REFERENCE.md](PHP_REFERENCE.md) for general PHP conventions.
+## Style precedence
 
-Use [LARAVEL_REFERENCE.md](LARAVEL_REFERENCE.md) when the project uses Laravel or the touched code is Laravel-specific.
+Apply these in order:
 
-Apply these rules in this order:
+1. The project's formatter and linter config, such as Pint, PHP-CS-Fixer, or PHP_CodeSniffer. A Pint install without `pint.json` still defines style through its default `laravel` preset.
+2. The project's established conventions.
+3. When the project defines no style, [PER Coding Style](https://www.php-fig.org/per/coding-style/) and PSR-4 autoloading.
+4. This reference.
 
-1. Formatter output.
-2. Established local conventions.
-3. This reference.
+Follow the formatter and linter config as you write, and run those tools once, when the work is complete.
 
-Apply them only to code you create or materially modify.
+Apply these rules only to code you create or materially modify.
 
 ## Core checklist
 
 - Use explicit type hints in typed PHP code.
-- Use PascalCase for PHP enum cases, unless the project's existing enums use `SCREAMING_SNAKE_CASE`.
+- Use PascalCase for PHP enum cases.
 - Use named arguments for boolean literals.
-- For Laravel code, also apply the Laravel reference.
+
+Use [PHP_REFERENCE.md](PHP_REFERENCE.md) for the details of these rules.
+
+Use [LARAVEL_REFERENCE.md](LARAVEL_REFERENCE.md) when the project uses Laravel or the touched code is Laravel-specific.

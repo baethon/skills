@@ -1,6 +1,6 @@
 ---
 name: focused-implementation
-description: Use when planning an implementation, writing, modifying, or refactoring code to keep scope minimal, make correctness local and checkable, validate at trust boundaries, and handle failures explicitly. Not for review-only tasks; language and framework style come from their own standards.
+description: Use when planning an implementation, writing, modifying, or refactoring code to keep scope minimal, make correctness local and checkable, validate at trust boundaries, and handle failures explicitly. Not for review-only tasks or code style.
 ---
 
 # Focused Implementation
@@ -15,9 +15,9 @@ When these rules conflict, prefer:
 2. Existing project conventions and architecture.
 3. The minimality heuristics below.
 
-## Relationship to coding standards
+## Relationship to code style
 
-This skill owns implementation scope, abstraction, behavior ownership, trust boundaries, failure behavior, and verification. Language and framework standards own syntax, naming, formatting, and established framework idioms.
+This skill owns implementation scope, abstraction, behavior ownership, trust boundaries, failure behavior, and verification. Code style, such as control flow, naming, syntax, and formatting, is outside its scope.
 
 A style preference does not by itself justify a new abstraction, dependency, configuration option, defensive branch, or unrelated refactor.
 
@@ -37,6 +37,7 @@ A style preference does not by itself justify a new abstraction, dependency, con
 - Implement only current requirements. Do not add options, extension points, flags, wrappers, registries, or generic parameters without a current need.
 - Prefer direct calls and straightforward control flow over indirection.
 - Do not generalize for hypothetical reuse. Extract a function or abstraction when it is reused now, isolates a coherent responsibility, or materially improves readability.
+- Extracting a pure calculation, a nested block, or an orchestrator step, or naming an intermediate value to flatten nested calls, counts as materially improving readability.
 - If inlining an abstraction makes the code easier to understand without losing required semantics, inline it.
 - Prefer self-explanatory code. Comments should add context, constraints, or rationale rather than restate obvious operations.
 
@@ -72,7 +73,7 @@ Use a database transaction only when operations must commit or roll back as one 
 - Avoid unrelated refactors while changing behavior. Small enabling cleanup is fine when it directly supports the requested change.
 - In legacy code, establish the affected behavior with focused characterization checks where needed. Compare it with requirements; existing behavior is evidence, not automatic acceptance criteria.
 - Strengthen the smallest affected area. Expand scope only when a required guarantee cannot be established locally, and explain that dependency.
-- For multi-step changes, work in small increments with a checkable outcome. Verify each increment before building further work on it.
+- For multi-step changes, work in small increments with a checkable outcome. Verify each increment with the behavior checks that cover it, such as focused tests, before building further work on it. Run formatters and linters once, when the work is complete.
 - When a test harness exists, add or update tests for changed behavior and rejected boundary input. For bug fixes, reproduce the failure when practical and use a regression check that fails for the reported reason. Fix the violated contract rather than merely suppressing the symptom.
 - Derive behavioral expectations from requirements and contracts independently of the implementation. Check observable outcomes, including relevant failure paths and concurrency or retry scenarios, rather than private implementation details or internal call structure.
 - Never special-case implementation logic only to satisfy known test inputs.

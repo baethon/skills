@@ -4,7 +4,7 @@
 
 ### 1. Enum cases in PascalCase
 
-PHP enum cases use PascalCase, following PER Coding Style:
+PHP enum cases use PascalCase:
 
 ```php
 // Good
@@ -43,12 +43,3 @@ foo($title, showBar: true, maxItems: 10);
 // Bad
 foo($title, true, 10);
 ```
-
-When current requirements need more than a binary choice, model that domain
-concept with the PHP construct that fits the surrounding code:
-
-- Replace boolean flags with explicit methods.
-- Use an enum for a closed set of modes.
-- Use an existing project options pattern when several independent choices travel together.
-
-Do not redesign an API merely because it accepts a boolean.

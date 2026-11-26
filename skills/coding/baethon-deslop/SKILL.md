@@ -21,7 +21,7 @@ In `--auto` mode, inspect existing staged and unstaged work before editing so th
 
 ## 2. Load the rules
 
-- Load `baethon-generic-coding-standards` for naming, control flow, collection expressions, and visible side effects.
+- Load `baethon-generic-coding-standards` for control flow, side effects, and naming.
 - For PHP, load `baethon-php-standards` and its applicable references for PHP and Laravel conventions.
 - Load `focused-implementation` for abstraction, validation, failure behavior, and test scope.
 
@@ -31,7 +31,7 @@ Use these references as the source of truth, including their precedence rules.
 
 Review every changed file against the applicable rules. For each comment, abstraction, defensive branch, fallback, or intermediate value that looks unnecessary, establish what purpose it serves and whether a more direct expression preserves that purpose.
 
-Apply the smallest clear simplification. Keep useful boundaries, required protections, and deliberate framework idioms. Correct standards drift in the changed code without expanding into an adjacent style migration.
+Apply the smallest clear simplification. Keep named intermediate values and extracted functions that flatten nesting or isolate a pure step. Keep useful boundaries, required protections, and deliberate framework idioms. Correct standards drift in the changed code without expanding into an adjacent style migration.
 
 Preserve observable behavior and public contracts, including failure behavior. Report suspected bugs or behavior-changing simplifications separately unless the user authorized those fixes.
 
