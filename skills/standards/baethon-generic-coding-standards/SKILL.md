@@ -81,8 +81,9 @@ Choose names that explain the role of the value in the current code. Accept comm
 
 A function name tells the caller whether the value can be absent:
 
-- `get*` returns the value or throws when it is missing, such as `getUser(id): User`. Collection getters return an empty collection.
-- `find*` returns `null`, `Optional`, or `Maybe` when the value legitimately may not exist, such as `findUser(email): User | null`.
+- `get*` returns the value or throws when it is missing, such as `getUser(id): User`.
+- A function that may return `null`, `Optional`, or `Maybe` takes `find*` or the project's equivalent, such as `*OrNull` or `tryGet*`. Example: `findUser(email): User | null`.
+- A function returning a collection returns an empty collection when nothing matches, whatever its prefix, such as `getOrders()` or `searchOrders(query)`.
 
 ## Layout
 
